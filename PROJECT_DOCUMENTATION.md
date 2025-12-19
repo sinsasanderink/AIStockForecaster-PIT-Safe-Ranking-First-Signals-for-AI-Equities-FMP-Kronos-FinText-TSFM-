@@ -158,6 +158,35 @@ market_snapshots (ticker, date, market_cap, shares_outstanding, avg_volume_20d, 
 **Problem:** FMP uses `filingDate` (single l), code checked `fillingDate` (double l)
 **Solution:** Check for both spellings: `filingDate` or `fillingDate`
 
+### Issue 6: SEC CIK URL Host Header Mismatch
+**Problem:** SEC CIK mapping is at www.sec.gov, but client had Host: data.sec.gov
+**Solution:** Use different headers for www.sec.gov vs data.sec.gov endpoints
+
+### Issue 7: FMP Free Tier Missing adj_close
+**Problem:** FMP `/stable/` endpoint doesn't return adjusted close prices
+**Solution:** Use unadjusted close with warning; upgrade FMP plan for splits handling
+
+---
+
+## Known Limitations
+
+### FMP Free Tier
+- No `adj_close` in historical prices (splits not adjusted)
+- No earnings calendar
+- Key Metrics endpoint errors
+- 250 calls/day limit
+
+### Alpha Vantage Free Tier
+- Only 25 calls/day (very limited)
+- No BMO/AMC timing for earnings
+
+### Recommendation
+For serious backtesting, consider upgrading FMP to get:
+- Adjusted close prices (split-corrected)
+- Earnings calendar
+- Key metrics
+- Higher rate limits
+
 ---
 
 ## Data Sources
@@ -223,7 +252,7 @@ All timestamps stored in **UTC**.
 
 ## Test Results
 
-### Unit Tests (No API Calls)
+### Section 3 Unit Tests (No API Calls)
 
 ```
 ============================================================
@@ -240,6 +269,31 @@ SUMMARY
 
   Total: 8/8 tests passed
 ```
+
+### Section 4 Gate Tests (Pre-requisites for Universe)
+
+These tests must pass before building the Survivorship-Safe Universe:
+
+```
+============================================================
+SECTION 4 GATE TESTS
+============================================================
+  ✓ PASS: 1_replay_invariance      (Same query = same result)
+  ✓ PASS: 2a_asof_boundaries       (Price/fundamental timing)
+  ✓ PASS: 2b_sec_boundaries        (SEC exact timestamps)
+  ✓ PASS: 3_corp_actions           (Split/dividend integrity)
+  ✓ PASS: 4_universe_repro         (Deterministic universe build)
+
+  Total: 5/5 gate tests passed
+  ✓ GO: Ready for Section 4
+```
+
+**Gate Test Details:**
+1. **PIT Replay Invariance** - Repeated queries return identical results
+2. **As-Of Boundaries** - Each data type respects observed_at (1-second precision)
+3. **SEC Filing Timestamps** - Exact acceptanceDateTime (e.g., NVDA 10-Q at 16:36:17 UTC)
+4. **Corporate Actions** - No false 50%+ daily swings from split artifacts
+5. **Universe Reproducibility** - Same asof → same universe membership
 
 ### Integration Tests (With API)
 
@@ -342,7 +396,8 @@ AI Stock Forecast/
 ├── tests/
 │   ├── test_signals.py           # Signal unit tests
 │   ├── test_reports.py           # Report unit tests
-│   └── test_section3.py          # Data infrastructure tests
+│   ├── test_section3.py          # Data infrastructure tests
+│   └── test_section4_gates.py    # Gate tests for Section 4 readiness
 ├── data/                         # Downloaded data (gitignored)
 ├── outputs/                      # Generated reports (gitignored)
 ├── requirements/

@@ -145,10 +145,12 @@ class SECEdgarClient:
         
         self._rate_limiter = SECRateLimiter()
         self._session = requests.Session()
-        # Don't set Host header globally - it varies by endpoint
+        # Per SEC guidance: declare automated tooling via User-Agent
+        # See: https://www.sec.gov/search-filings/edgar-application-programming-interfaces
         self._session.headers.update({
             "User-Agent": self.user_agent,
             "Accept-Encoding": "gzip, deflate",
+            "Host": "data.sec.gov",
         })
         
         logger.info(f"SECEdgarClient initialized (User-Agent: {self.user_agent})")
@@ -237,8 +239,14 @@ class SECEdgarClient:
         if not _TICKER_CIK_CACHE:
             try:
                 # This endpoint is on www.sec.gov, not data.sec.gov
+                # Need to override Host header for this specific request
                 url = "https://www.sec.gov/files/company_tickers.json"
-                response = self._session.get(url, timeout=30)
+                headers = {
+                    "User-Agent": self.user_agent,
+                    "Accept-Encoding": "gzip, deflate",
+                    "Host": "www.sec.gov",  # Different host!
+                }
+                response = requests.get(url, headers=headers, timeout=30)
                 response.raise_for_status()
                 data = response.json()
                 
