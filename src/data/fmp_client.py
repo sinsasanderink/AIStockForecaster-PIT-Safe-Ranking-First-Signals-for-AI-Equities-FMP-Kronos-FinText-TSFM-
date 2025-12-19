@@ -8,24 +8,29 @@ Handles all communication with the FMP API with:
 - PIT-aware data transformation (adds observed_at timestamps)
 - Caching to minimize API calls
 
-FMP Free Tier Limitations (as of 2025):
-- 250 API calls per day
-- 5 API calls per minute  
-- Uses /stable/ API endpoint
+FMP Free Tier Availability (tested 2025):
+✅ Historical Prices (OHLCV)
+✅ Quote (15-min delayed)
+✅ Profile (sector, industry, market cap)
+✅ Income Statement (with fillingDate for PIT)
+✅ Balance Sheet (with fillingDate)
+✅ Cash Flow (with fillingDate)
+✅ Ratios TTM
+✅ Enterprise Value
+❌ Earnings Calendar (needs paid for pre/post market timing)
+❌ Key Metrics (endpoint error on free tier)
 
-Endpoints Used (Stable API):
-- /stable/historical-price-eod/full - OHLCV data
-- /stable/quote - Current quote
-- /stable/company-core-information - Basic company info
-- /stable/income-statement - Income statements
-- /stable/balance-sheet-statement - Balance sheets
-- /stable/cash-flow-statement - Cash flows
+PIT TIMESTAMP CONVENTION:
+- All observed_at timestamps are stored in UTC
+- Price data: observed_at = market close time (4pm ET = 21:00 UTC)
+- Fundamentals: observed_at = filing_date + 1 day at market open (9:30am ET)
+  (conservative assumption: data available after overnight processing)
 """
 
 import os
 import time
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,8 +38,19 @@ import json
 
 import requests
 import pandas as pd
+import pytz
 
 logger = logging.getLogger(__name__)
+
+# Timezone constants
+ET = pytz.timezone("America/New_York")
+UTC = pytz.UTC
+
+# Market timing constants
+MARKET_CLOSE_HOUR = 16  # 4:00 PM ET
+MARKET_CLOSE_MINUTE = 0
+MARKET_OPEN_HOUR = 9
+MARKET_OPEN_MINUTE = 30
 
 
 class FMPError(Exception):
@@ -50,6 +66,36 @@ class RateLimitError(FMPError):
 class APIKeyError(FMPError):
     """Raised when API key is invalid or missing."""
     pass
+
+
+def get_market_close_utc(d: date) -> datetime:
+    """
+    Get market close time in UTC for a given date.
+    
+    This is the canonical observed_at for price data.
+    Handles DST correctly.
+    """
+    # Create 4:00 PM ET on that date
+    et_close = ET.localize(datetime(d.year, d.month, d.day, MARKET_CLOSE_HOUR, MARKET_CLOSE_MINUTE))
+    # Convert to UTC
+    return et_close.astimezone(UTC)
+
+
+def get_next_market_open_utc(d: date) -> datetime:
+    """
+    Get next market open time in UTC after a given date.
+    
+    Used for fundamentals - conservative assumption that data
+    filed on date D is available at market open on D+1.
+    """
+    next_day = d + timedelta(days=1)
+    # Skip weekends
+    while next_day.weekday() >= 5:  # Saturday=5, Sunday=6
+        next_day += timedelta(days=1)
+    
+    et_open = ET.localize(datetime(next_day.year, next_day.month, next_day.day, 
+                                    MARKET_OPEN_HOUR, MARKET_OPEN_MINUTE))
+    return et_open.astimezone(UTC)
 
 
 @dataclass
@@ -110,26 +156,21 @@ class FMPClient:
     """
     Client for Financial Modeling Prep API (Stable API).
     
-    Features:
-    - Automatic rate limiting
-    - Caching to reduce API calls
-    - PIT-aware data transformation
-    - Error handling with retries
+    PIT TIMESTAMP CONVENTION:
+    - All observed_at stored in UTC
+    - Prices: available at market close (4pm ET → UTC)
+    - Fundamentals: available next market open after filing
     
     Usage:
         client = FMPClient()
         
-        # Get OHLCV data
+        # Get OHLCV data (observed_at = market close UTC)
         df = client.get_historical_prices("NVDA", start="2023-01-01", end="2024-01-01")
         
-        # Get fundamentals
+        # Get fundamentals (observed_at = next market open after filing)
         df = client.get_income_statement("NVDA", limit=8)
-        
-        # Get quote
-        quote = client.get_quote(["NVDA"])
     """
     
-    # Using stable API endpoint (2025)
     BASE_URL = "https://financialmodelingprep.com/stable"
     
     def __init__(
@@ -160,7 +201,6 @@ class FMPClient:
         if cache_dir:
             self.cache_dir = Path(cache_dir)
         else:
-            # Use relative path if config not available
             try:
                 from ..config import PROJECT_ROOT
                 self.cache_dir = PROJECT_ROOT / "data" / "cache" / "fmp"
@@ -176,7 +216,6 @@ class FMPClient:
     
     def _get_cache_path(self, endpoint: str, params: Dict) -> Path:
         """Generate cache file path for a request."""
-        # Create a deterministic key from endpoint + params
         param_str = "_".join(f"{k}={v}" for k, v in sorted(params.items()) if k != "apikey")
         safe_endpoint = endpoint.replace("/", "_").replace("-", "_")
         filename = f"{safe_endpoint}_{param_str}.json"
@@ -217,23 +256,12 @@ class FMPClient:
         params: Optional[Dict] = None,
         use_cache: Optional[bool] = None,
     ) -> Any:
-        """
-        Make an API request with rate limiting and caching.
-        
-        Args:
-            endpoint: API endpoint (e.g., "historical-price-eod/full")
-            params: Query parameters
-            use_cache: Override instance cache setting
-        
-        Returns:
-            JSON response data
-        """
+        """Make an API request with rate limiting and caching."""
         params = params or {}
         params["apikey"] = self.api_key
         
         should_cache = use_cache if use_cache is not None else self.use_cache
         
-        # Check cache first
         cache_path = self._get_cache_path(endpoint, params)
         if should_cache:
             cached = self._get_cached(cache_path)
@@ -241,16 +269,13 @@ class FMPClient:
                 logger.debug(f"Cache hit: {endpoint}")
                 return cached
         
-        # Rate limit
         self._rate_limiter.wait_if_needed()
         
-        # Make request
         url = f"{self.BASE_URL}/{endpoint}"
         
         try:
             response = self._session.get(url, params=params, timeout=30)
             
-            # Check for errors
             if response.status_code == 401:
                 raise APIKeyError("Invalid API key")
             elif response.status_code == 429:
@@ -262,11 +287,9 @@ class FMPClient:
             
             data = response.json()
             
-            # FMP returns error messages in JSON
             if isinstance(data, dict) and "Error Message" in data:
                 raise FMPError(data["Error Message"])
             
-            # Cache successful response
             if should_cache:
                 self._set_cached(cache_path, data)
             
@@ -276,7 +299,7 @@ class FMPClient:
             raise FMPError(f"Request failed: {e}")
     
     # =========================================================================
-    # Price Data Endpoints (Stable API)
+    # Price Data Endpoints
     # =========================================================================
     
     def get_historical_prices(
@@ -288,14 +311,16 @@ class FMPClient:
         """
         Get historical OHLCV data for a symbol.
         
+        PIT RULE: observed_at = market close time (4pm ET) in UTC.
+        This means data for date D is available at queries with asof >= D 16:00 ET.
+        
         Args:
             symbol: Ticker symbol (e.g., "NVDA")
             start: Start date (YYYY-MM-DD)
             end: End date (YYYY-MM-DD)
         
         Returns:
-            DataFrame with columns: date, open, high, low, close, adjClose, 
-            volume, change, changePercent, observed_at
+            DataFrame with columns including observed_at (UTC datetime)
         """
         params = {"symbol": symbol}
         if start:
@@ -303,8 +328,7 @@ class FMPClient:
         if end:
             params["to"] = end
         
-        endpoint = "historical-price-eod/full"
-        data = self._request(endpoint, params)
+        data = self._request("historical-price-eod/full", params)
         
         if not data:
             logger.warning(f"No price data for {symbol}")
@@ -315,14 +339,12 @@ class FMPClient:
         if df.empty:
             return df
         
-        # Add ticker column
         df["ticker"] = symbol
-        
-        # Add PIT metadata
-        # Price data is available after market close on that day
-        # We conservatively say it's available at midnight the next day
         df["date"] = pd.to_datetime(df["date"])
-        df["observed_at"] = df["date"] + pd.Timedelta(days=1)
+        
+        # PIT RULE: Price data available at market close (4pm ET) in UTC
+        # This is the KEY fix for timestamp consistency
+        df["observed_at"] = df["date"].apply(lambda d: get_market_close_utc(d.date()))
         df["source"] = "fmp_historical"
         
         # Rename for consistency
@@ -331,7 +353,6 @@ class FMPClient:
         if "changePercent" in df.columns:
             df = df.rename(columns={"changePercent": "change_pct"})
         
-        # Sort oldest first
         df = df.sort_values("date").reset_index(drop=True)
         
         return df
@@ -341,21 +362,12 @@ class FMPClient:
         Get current quotes for symbols.
         
         Note: Free tier has 15-minute delay.
-        
-        Args:
-            symbols: List of ticker symbols
-        
-        Returns:
-            Dict mapping symbol to quote data
         """
         results = {}
         
         for symbol in symbols:
-            params = {"symbol": symbol}
-            endpoint = "quote"
-            
             try:
-                data = self._request(endpoint, params, use_cache=False)
+                data = self._request("quote", {"symbol": symbol}, use_cache=False)
                 
                 if data and isinstance(data, list) and len(data) > 0:
                     results[symbol] = data[0]
@@ -365,7 +377,7 @@ class FMPClient:
         return results
     
     # =========================================================================
-    # Fundamental Data Endpoints (Stable API)
+    # Fundamental Data Endpoints
     # =========================================================================
     
     def get_income_statement(
@@ -375,40 +387,48 @@ class FMPClient:
         limit: int = 20,
     ) -> pd.DataFrame:
         """
-        Get income statement data.
+        Get income statement data with PIT-safe observed_at.
         
-        Args:
-            symbol: Ticker symbol
-            period: "quarter" or "annual"
-            limit: Number of periods to return
+        PIT RULE: 
+        - If fillingDate available: observed_at = next market open after filing
+        - Else: observed_at = period_end + 45 days (conservative SEC deadline)
         
-        Returns:
-            DataFrame with income statement items + PIT metadata
+        This ensures we never use earnings data before it was publicly filed.
         """
-        endpoint = "income-statement"
-        params = {"symbol": symbol, "period": period, "limit": limit}
-        
-        data = self._request(endpoint, params)
+        data = self._request("income-statement", 
+                            {"symbol": symbol, "period": period, "limit": limit})
         
         if not data:
             return pd.DataFrame()
         
         df = pd.DataFrame(data)
         df["ticker"] = symbol
+        df["period_end"] = pd.to_datetime(df["date"])
         
-        # Add PIT metadata
-        # FMP provides fillingDate (when SEC filing was made)
-        if "fillingDate" in df.columns:
-            df["observed_at"] = pd.to_datetime(df["fillingDate"]) + pd.Timedelta(days=1)
-        elif "acceptedDate" in df.columns:
-            df["observed_at"] = pd.to_datetime(df["acceptedDate"])
+        # PIT RULE: Use filing date if available, else conservative lag
+        # FMP uses "filingDate" (single l) but some docs say "fillingDate" - check both
+        filing_col = "filingDate" if "filingDate" in df.columns else "fillingDate"
+        if filing_col in df.columns and df[filing_col].notna().any():
+            # Filing date + next market open (conservative: available after overnight)
+            df["observed_at"] = df[filing_col].apply(
+                lambda d: get_next_market_open_utc(pd.to_datetime(d).date()) 
+                if pd.notna(d) else None
+            )
+            # Fill any missing with conservative estimate
+            mask = df["observed_at"].isna()
+            if mask.any():
+                df.loc[mask, "observed_at"] = df.loc[mask, "period_end"].apply(
+                    lambda d: get_next_market_open_utc(d.date() + timedelta(days=45))
+                )
         else:
-            # Conservative: use period end + 45 days (typical filing deadline)
-            df["observed_at"] = pd.to_datetime(df["date"]) + pd.Timedelta(days=45)
-            logger.warning(f"No filing date for {symbol}, using conservative lag")
+            # No filing date - use conservative 45-day lag
+            logger.warning(f"No filingDate for {symbol}, using 45-day lag")
+            df["observed_at"] = df["period_end"].apply(
+                lambda d: get_next_market_open_utc(d.date() + timedelta(days=45))
+            )
         
         df["source"] = "fmp_income_statement"
-        df["period_end"] = pd.to_datetime(df["date"])
+        df["statement_type"] = "income"
         
         return df
     
@@ -418,28 +438,35 @@ class FMPClient:
         period: str = "quarter",
         limit: int = 20,
     ) -> pd.DataFrame:
-        """Get balance sheet data with PIT metadata."""
-        endpoint = "balance-sheet-statement"
-        params = {"symbol": symbol, "period": period, "limit": limit}
-        
-        data = self._request(endpoint, params)
+        """Get balance sheet data with PIT-safe observed_at."""
+        data = self._request("balance-sheet-statement",
+                            {"symbol": symbol, "period": period, "limit": limit})
         
         if not data:
             return pd.DataFrame()
         
         df = pd.DataFrame(data)
         df["ticker"] = symbol
+        df["period_end"] = pd.to_datetime(df["date"])
         
-        # Add PIT metadata
-        if "fillingDate" in df.columns:
-            df["observed_at"] = pd.to_datetime(df["fillingDate"]) + pd.Timedelta(days=1)
-        elif "acceptedDate" in df.columns:
-            df["observed_at"] = pd.to_datetime(df["acceptedDate"])
+        filing_col = "filingDate" if "filingDate" in df.columns else "fillingDate"
+        if filing_col in df.columns and df[filing_col].notna().any():
+            df["observed_at"] = df[filing_col].apply(
+                lambda d: get_next_market_open_utc(pd.to_datetime(d).date())
+                if pd.notna(d) else None
+            )
+            mask = df["observed_at"].isna()
+            if mask.any():
+                df.loc[mask, "observed_at"] = df.loc[mask, "period_end"].apply(
+                    lambda d: get_next_market_open_utc(d.date() + timedelta(days=45))
+                )
         else:
-            df["observed_at"] = pd.to_datetime(df["date"]) + pd.Timedelta(days=45)
+            df["observed_at"] = df["period_end"].apply(
+                lambda d: get_next_market_open_utc(d.date() + timedelta(days=45))
+            )
         
         df["source"] = "fmp_balance_sheet"
-        df["period_end"] = pd.to_datetime(df["date"])
+        df["statement_type"] = "balance"
         
         return df
     
@@ -449,51 +476,65 @@ class FMPClient:
         period: str = "quarter",
         limit: int = 20,
     ) -> pd.DataFrame:
-        """Get cash flow statement data with PIT metadata."""
-        endpoint = "cash-flow-statement"
-        params = {"symbol": symbol, "period": period, "limit": limit}
-        
-        data = self._request(endpoint, params)
+        """Get cash flow statement data with PIT-safe observed_at."""
+        data = self._request("cash-flow-statement",
+                            {"symbol": symbol, "period": period, "limit": limit})
         
         if not data:
             return pd.DataFrame()
         
         df = pd.DataFrame(data)
         df["ticker"] = symbol
+        df["period_end"] = pd.to_datetime(df["date"])
         
-        # Add PIT metadata
-        if "fillingDate" in df.columns:
-            df["observed_at"] = pd.to_datetime(df["fillingDate"]) + pd.Timedelta(days=1)
-        elif "acceptedDate" in df.columns:
-            df["observed_at"] = pd.to_datetime(df["acceptedDate"])
+        filing_col = "filingDate" if "filingDate" in df.columns else "fillingDate"
+        if filing_col in df.columns and df[filing_col].notna().any():
+            df["observed_at"] = df[filing_col].apply(
+                lambda d: get_next_market_open_utc(pd.to_datetime(d).date())
+                if pd.notna(d) else None
+            )
+            mask = df["observed_at"].isna()
+            if mask.any():
+                df.loc[mask, "observed_at"] = df.loc[mask, "period_end"].apply(
+                    lambda d: get_next_market_open_utc(d.date() + timedelta(days=45))
+                )
         else:
-            df["observed_at"] = pd.to_datetime(df["date"]) + pd.Timedelta(days=45)
+            df["observed_at"] = df["period_end"].apply(
+                lambda d: get_next_market_open_utc(d.date() + timedelta(days=45))
+            )
         
         df["source"] = "fmp_cash_flow"
-        df["period_end"] = pd.to_datetime(df["date"])
+        df["statement_type"] = "cashflow"
         
         return df
     
-    def get_key_metrics(
+    def get_ratios_ttm(self, symbol: str) -> Optional[Dict]:
+        """Get trailing twelve month ratios."""
+        try:
+            data = self._request("ratios-ttm", {"symbol": symbol})
+            if data and isinstance(data, list) and len(data) > 0:
+                return data[0]
+        except FMPError:
+            pass
+        return None
+    
+    def get_enterprise_value(
         self,
         symbol: str,
         period: str = "quarter",
         limit: int = 20,
     ) -> pd.DataFrame:
-        """Get key financial metrics (PE, PB, etc.) with PIT metadata."""
-        endpoint = "key-metrics"
-        params = {"symbol": symbol, "period": period, "limit": limit}
-        
-        data = self._request(endpoint, params)
-        
-        if not data:
-            return pd.DataFrame()
-        
-        df = pd.DataFrame(data)
-        df["ticker"] = symbol
-        df["source"] = "fmp_key_metrics"
-        
-        return df
+        """Get enterprise value data."""
+        try:
+            data = self._request("enterprise-values",
+                                {"symbol": symbol, "period": period, "limit": limit})
+            if data:
+                df = pd.DataFrame(data)
+                df["ticker"] = symbol
+                return df
+        except FMPError:
+            pass
+        return pd.DataFrame()
     
     # =========================================================================
     # Company Info Endpoints
@@ -501,133 +542,73 @@ class FMPClient:
     
     def get_profile(self, symbol: str) -> Optional[Dict]:
         """
-        Get company profile (sector, industry, market cap, etc.).
+        Get company profile.
         
-        Args:
-            symbol: Ticker symbol
-        
-        Returns:
-            Dict with company info or None
+        Note: Profiles are treated as "static metadata" for PIT purposes.
+        Sector/industry rarely change, and when they do, the old classification
+        is usually still reasonable for backtesting.
         """
-        # Try stable/profile first
-        endpoint = "profile"
-        params = {"symbol": symbol}
-        
         try:
-            data = self._request(endpoint, params)
+            data = self._request("profile", {"symbol": symbol})
             
             if data and isinstance(data, list) and len(data) > 0:
                 return data[0]
             
-            # If profile is empty, try to build from quote
+            # Fallback to quote for basic info
             quote = self.get_quote([symbol])
             if symbol in quote:
                 return {
                     "symbol": symbol,
                     "companyName": quote[symbol].get("name", symbol),
                     "mktCap": quote[symbol].get("marketCap"),
-                    "sector": "Technology",  # Default for AI stocks
+                    "sector": "Technology",
                     "industry": "Unknown",
                 }
-            
-            return None
         except FMPError:
-            return None
+            pass
+        return None
     
     def get_profiles_batch(self, symbols: List[str]) -> Dict[str, Dict]:
-        """
-        Get profiles for multiple symbols.
-        
-        Note: Fetches one at a time for free tier.
-        """
+        """Get profiles for multiple symbols (one at a time for free tier)."""
         results = {}
-        
         for symbol in symbols:
             profile = self.get_profile(symbol)
             if profile:
                 results[symbol] = profile
-        
         return results
     
     # =========================================================================
-    # Events Endpoints
+    # Corporate Actions
     # =========================================================================
-    
-    def get_earnings_calendar(
-        self,
-        start: Optional[str] = None,
-        end: Optional[str] = None,
-    ) -> pd.DataFrame:
-        """
-        Get earnings calendar.
-        
-        Args:
-            start: Start date (YYYY-MM-DD)
-            end: End date (YYYY-MM-DD)
-        
-        Returns:
-            DataFrame with earnings dates
-        """
-        endpoint = "earning-calendar"
-        params = {}
-        if start:
-            params["from"] = start
-        if end:
-            params["to"] = end
-        
-        try:
-            data = self._request(endpoint, params)
-            
-            if not data:
-                return pd.DataFrame()
-            
-            df = pd.DataFrame(data)
-            df["source"] = "fmp_earnings_calendar"
-            
-            return df
-        except FMPError:
-            return pd.DataFrame()
     
     def get_stock_dividend(self, symbol: str) -> pd.DataFrame:
         """Get historical dividend data."""
-        endpoint = "historical-price-eod/stock_dividend"
-        params = {"symbol": symbol}
-        
         try:
-            data = self._request(endpoint, params)
-            
-            if not data:
-                return pd.DataFrame()
-            
-            df = pd.DataFrame(data)
-            df["ticker"] = symbol
-            df["source"] = "fmp_dividend"
-            
-            return df
+            data = self._request("historical-price-eod/stock_dividend", {"symbol": symbol})
+            if data:
+                df = pd.DataFrame(data)
+                df["ticker"] = symbol
+                df["source"] = "fmp_dividend"
+                return df
         except FMPError:
-            return pd.DataFrame()
+            pass
+        return pd.DataFrame()
     
     def get_stock_split(self, symbol: str) -> pd.DataFrame:
         """Get historical stock split data."""
-        endpoint = "historical-price-eod/stock_split"
-        params = {"symbol": symbol}
-        
         try:
-            data = self._request(endpoint, params)
-            
-            if not data:
-                return pd.DataFrame()
-            
-            df = pd.DataFrame(data)
-            df["ticker"] = symbol
-            df["source"] = "fmp_split"
-            
-            return df
+            data = self._request("historical-price-eod/stock_split", {"symbol": symbol})
+            if data:
+                df = pd.DataFrame(data)
+                df["ticker"] = symbol
+                df["source"] = "fmp_split"
+                return df
         except FMPError:
-            return pd.DataFrame()
+            pass
+        return pd.DataFrame()
     
     # =========================================================================
-    # Benchmark / Index Data
+    # Index/Benchmark Data
     # =========================================================================
     
     def get_index_historical(
@@ -636,11 +617,7 @@ class FMPClient:
         start: Optional[str] = None,
         end: Optional[str] = None,
     ) -> pd.DataFrame:
-        """
-        Get historical data for an index/ETF (QQQ, SPY, etc.).
-        
-        Same as get_historical_prices but semantic distinction.
-        """
+        """Get historical data for an index/ETF (QQQ, SPY, etc.)."""
         return self.get_historical_prices(symbol, start, end)
     
     # =========================================================================
@@ -655,7 +632,6 @@ class FMPClient:
     def test_connection(self) -> bool:
         """Test API connection with a simple request."""
         try:
-            # Use quote endpoint with a single symbol
             result = self.get_quote(["AAPL"])
             return "AAPL" in result
         except FMPError:
@@ -677,46 +653,27 @@ def download_ticker_data(
     end_date: str,
     include_fundamentals: bool = True,
     client: Optional[FMPClient] = None,
-) -> Dict[str, pd.DataFrame]:
+) -> Dict[str, Any]:
     """
     Download all available data for a single ticker.
     
-    Args:
-        ticker: Stock ticker
-        start_date: Start date (YYYY-MM-DD)
-        end_date: End date (YYYY-MM-DD)
-        include_fundamentals: Whether to include income/balance/cashflow
-        client: FMP client instance (creates one if not provided)
-    
-    Returns:
-        Dict with keys: prices, profile, income, balance, cashflow, dividends, splits
+    Returns dict with: prices, profile, income, balance, cashflow, ratios, ev
     """
     if client is None:
         client = FMPClient()
     
-    result = {}
-    
-    # Prices (always)
-    logger.info(f"Downloading prices for {ticker}")
-    result["prices"] = client.get_historical_prices(ticker, start_date, end_date)
-    
-    # Profile
-    result["profile"] = client.get_profile(ticker)
+    result = {
+        "prices": client.get_historical_prices(ticker, start_date, end_date),
+        "profile": client.get_profile(ticker),
+    }
     
     if include_fundamentals:
-        # Income statement
-        logger.info(f"Downloading income statement for {ticker}")
         result["income"] = client.get_income_statement(ticker, period="quarter", limit=20)
-        
-        # Balance sheet
-        logger.info(f"Downloading balance sheet for {ticker}")
         result["balance"] = client.get_balance_sheet(ticker, period="quarter", limit=20)
-        
-        # Cash flow
-        logger.info(f"Downloading cash flow for {ticker}")
         result["cashflow"] = client.get_cash_flow(ticker, period="quarter", limit=20)
+        result["ratios"] = client.get_ratios_ttm(ticker)
+        result["ev"] = client.get_enterprise_value(ticker, period="quarter", limit=20)
     
-    # Corporate actions
     result["dividends"] = client.get_stock_dividend(ticker)
     result["splits"] = client.get_stock_split(ticker)
     
