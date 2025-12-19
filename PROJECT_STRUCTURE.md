@@ -54,11 +54,14 @@ AI_Stock_Forecast/
 │   │   ├── survivorship_audit.py # Survivorship bias checks
 │   │   └── corp_action_checks.py # Split/dividend validation
 │   │
-│   ├── data/                     # Section 3: Data Infrastructure (TODO)
+│   ├── data/                     # Section 3: Data Infrastructure ✅ COMPLETE
 │   │   ├── __init__.py
-│   │   ├── fmp_client.py         # FMP API client
+│   │   ├── fmp_client.py         # FMP API client (split-adjusted OHLCV)
+│   │   ├── alphavantage_client.py # Alpha Vantage (earnings calendar)
+│   │   ├── sec_edgar_client.py   # SEC EDGAR (gold standard timestamps)
 │   │   ├── pit_store.py          # Point-in-time data storage (DuckDB)
-│   │   ├── universe.py           # Universe construction
+│   │   ├── event_store.py        # Event store (earnings, filings, sentiment) ⭐ NEW
+│   │   ├── trading_calendar.py   # NYSE calendar, cutoffs, holidays
 │   │   └── benchmarks.py         # Benchmark data (QQQ, XLK, SMH)
 │   │
 │   ├── features/                 # Section 5: Feature Engineering (TODO)

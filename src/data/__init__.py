@@ -7,7 +7,7 @@ Section 3: Data & Point-in-Time Infrastructure
 This module provides multi-source data acquisition with PIT-safe timestamps:
 
 1. FMP Client (Financial Modeling Prep)
-   - Historical prices (OHLCV)
+   - Historical prices (OHLCV) - split-adjusted via /stable/historical-price-eod/full
    - Fundamentals (income, balance, cashflow with filingDate)
    - Company profiles
    
@@ -26,11 +26,17 @@ This module provides multi-source data acquisition with PIT-safe timestamps:
 5. Trading Calendar
    - NYSE holidays and trading days
    - Cutoff time handling (4pm ET)
+
+6. Event Store (NEW)
+   - Discrete events (earnings, filings, news, sentiment)
+   - PIT-safe with observed_at filtering
+   - Sentiment aggregation utilities
 """
 
 from .fmp_client import FMPClient, FMPError, RateLimitError
 from .pit_store import DuckDBPITStore
 from .trading_calendar import TradingCalendarImpl
+from .event_store import EventStore, Event, EventType, EventTiming
 
 # Lazy imports for optional clients
 def get_alphavantage_client():
@@ -49,6 +55,10 @@ __all__ = [
     "RateLimitError",
     "DuckDBPITStore",
     "TradingCalendarImpl",
+    "EventStore",
+    "Event",
+    "EventType",
+    "EventTiming",
     "get_alphavantage_client",
     "get_sec_client",
 ]
