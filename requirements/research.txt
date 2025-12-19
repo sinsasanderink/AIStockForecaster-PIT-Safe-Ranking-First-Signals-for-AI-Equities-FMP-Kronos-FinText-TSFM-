@@ -1,0 +1,23 @@
+# Research & Notebook Dependencies
+# =================================
+# Interactive analysis, visualization, experimentation
+
+-r gpu.txt
+
+# Jupyter
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+ipywidgets>=8.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+
+# Experiment Tracking (optional)
+# mlflow>=2.8.0
+# wandb>=0.16.0
+
+# Backtesting (optional, for validation only)
+# alpaca-py>=0.10.0
+

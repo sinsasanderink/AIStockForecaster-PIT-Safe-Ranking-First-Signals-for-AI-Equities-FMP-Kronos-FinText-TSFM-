@@ -1,0 +1,11 @@
+# AI Stock Forecaster - Full Dependencies
+# ========================================
+# This installs everything. For specific use cases, see:
+#   - requirements/base.txt     (core runtime)
+#   - requirements/ml.txt       (+ tabular ML)
+#   - requirements/gpu.txt      (+ deep learning/foundation models)
+#   - requirements/dev.txt      (+ testing/linting)
+#   - requirements/research.txt (+ notebooks/visualization)
+
+-r requirements/research.txt
+-r requirements/dev.txt

@@ -1,0 +1,27 @@
+# GPU/Deep Learning Dependencies
+# ===============================
+# PyTorch and foundation models (Kronos, FinText)
+# Pin versions to your CUDA setup as needed
+
+-r ml.txt
+
+# Deep Learning Core
+torch>=2.0.0
+transformers>=4.35.0
+safetensors>=0.4.0
+accelerate>=0.25.0
+
+# Kronos Foundation Model
+# -----------------------
+# For inference only, install from GitHub:
+#   pip install git+https://github.com/shiyu-coder/Kronos.git
+#
+# For fine-tuning, you also need:
+#   pip install pyqlib
+
+# FinText TSFM Models
+# -------------------
+# Models loaded via transformers from HuggingFace:
+#   - FinText/Chronos-Bolt-Base
+#   - FinText/TimesFM-Base
+
