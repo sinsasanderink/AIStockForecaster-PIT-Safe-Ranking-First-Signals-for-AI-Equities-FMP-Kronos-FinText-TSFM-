@@ -100,7 +100,8 @@ python -m src.cli score --asof 2024-06-15 --horizon 20
 **Schema:**
 ```sql
 -- Prices with PIT timestamps
-prices (ticker, date, open, high, low, close, volume, observed_at TIMESTAMPTZ)
+-- Note: close and adj_close are identical (FMP /full is split-adjusted)
+prices (ticker, date, open, high, low, close, adj_close, volume, observed_at TIMESTAMPTZ)
 
 -- Fundamentals supporting revisions
 fundamentals (ticker, period_end, statement_type, field, value, filing_date, observed_at TIMESTAMPTZ)
@@ -108,6 +109,11 @@ fundamentals (ticker, period_end, statement_type, field, value, filing_date, obs
 -- Market snapshots for computed values
 market_snapshots (ticker, date, market_cap, shares_outstanding, avg_volume_20d, observed_at TIMESTAMPTZ)
 ```
+
+**Column Convention:**
+- `close` = split-adjusted close (from FMP `/full` endpoint)
+- `adj_close` = same as `close` (populated for compatibility)
+- Both can be used interchangeably for returns/features
 
 **Key Features:**
 - All timestamps in UTC
@@ -248,7 +254,12 @@ The new `EventStore` abstraction makes sentiment integration clean:
 
 ### Issue 7: Misunderstanding About adj_close
 **Problem:** Assumed FMP free tier lacked split-adjusted prices
-**Solution:** Verified `/stable/historical-price-eod/full` IS split-adjusted. No paid tier needed for this.
+**Solution:** Verified `/stable/historical-price-eod/full` IS split-adjusted. No paid tier needed.
+
+**Convention Adopted:**
+- FMP `/full` endpoint returns `close` which IS already split-adjusted
+- We populate `adj_close = close` in FMPClient for schema consistency
+- Downstream code can use either `close` or `adj_close` interchangeably
 
 ---
 

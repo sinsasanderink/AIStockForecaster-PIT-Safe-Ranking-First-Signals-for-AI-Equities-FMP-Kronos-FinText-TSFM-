@@ -347,9 +347,16 @@ class FMPClient:
         df["observed_at"] = df["date"].apply(lambda d: get_market_close_utc(d.date()))
         df["source"] = "fmp_historical"
         
-        # Rename for consistency
+        # Handle adjusted close column:
+        # FMP's /stable/historical-price-eod/full returns split-adjusted prices
+        # in the 'close' column directly (no separate adjClose column).
+        # We populate adj_close = close for schema consistency.
         if "adjClose" in df.columns:
             df = df.rename(columns={"adjClose": "adj_close"})
+        elif "close" in df.columns and "adj_close" not in df.columns:
+            # /full endpoint: close IS already split-adjusted, copy to adj_close
+            df["adj_close"] = df["close"]
+        
         if "changePercent" in df.columns:
             df = df.rename(columns={"changePercent": "change_pct"})
         

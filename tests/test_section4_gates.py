@@ -370,35 +370,31 @@ def test_corporate_action_integrity():
         for _, row in extreme_returns.iterrows():
             print(f"    {row['date'].date()}: {row['return']:+.1%} close=${row['close']:.2f}")
     
-    # For adjusted close, there should be no extreme returns
-    # (splits should be factored out)
-    # NOTE: FMP free tier doesn't return adj_close, so we fall back to close
-    price_col = "adj_close" if "adj_close" in df.columns and df["adj_close"].notna().any() else "close"
+    # FMP's /stable/historical-price-eod/full endpoint returns split-adjusted prices
+    # in the 'close' column (confirmed by NVDA 10:1 split test).
+    # There's no separate adj_close column because close IS already adjusted.
     
-    df["check_return"] = df[price_col].pct_change()
+    df["check_return"] = df["close"].pct_change()
     extreme_adj = df[df["check_return"].abs() > extreme_threshold]
     n_extreme_adj = len(extreme_adj)
     
-    # For regular close, splits can cause false positives
-    # For adj_close, should see very few extreme moves
-    max_allowed = 2 if price_col == "adj_close" else 5
+    # With split-adjusted close, we should see very few extreme moves (real market events only)
+    max_allowed = 2
     
     adj_ok = n_extreme_adj <= max_allowed
     print_result(
-        f"Price ({price_col}) has ≤{max_allowed} extreme returns",
+        f"Split-adjusted close has ≤{max_allowed} extreme returns",
         adj_ok,
         f"Found {n_extreme_adj} days with |return| > {extreme_threshold:.0%}"
     )
     
     if n_extreme_adj > 0:
-        print(f"    Extreme returns (using {price_col}):")
+        print(f"    Extreme returns (should be real market moves, not split artifacts):")
         for _, row in extreme_adj.head(5).iterrows():
             print(f"      {row['date'].date()}: {row['check_return']:+.1%}")
     
-    # Warn if using close instead of adj_close
-    if price_col == "close":
-        print("    ⚠️  WARNING: Using unadjusted 'close' (FMP free tier doesn't provide adj_close)")
-        print("       Split events may cause false positives. Consider upgrading FMP plan.")
+    # Confirm we're using the right data
+    print("    ✓ Using FMP /stable/historical-price-eod/full (split-adjusted)")
     
     return adj_ok
 
