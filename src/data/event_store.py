@@ -57,14 +57,32 @@ ET = pytz.timezone("America/New_York")
 
 class EventType(Enum):
     """Types of discrete events tracked in the system."""
-    EARNINGS = "earnings"           # Quarterly earnings releases
+    # Core events (Tier 0)
+    EARNINGS = "earnings"           # Quarterly earnings releases with surprise data
     FILING = "filing"               # SEC filings (10-K, 10-Q, 8-K, etc.)
     NEWS = "news"                   # News articles
     SENTIMENT = "sentiment"         # Sentiment scores (derived from news/filings)
     DIVIDEND = "dividend"           # Dividend announcements
     SPLIT = "split"                 # Stock splits
-    GUIDANCE = "guidance"           # Forward guidance
-    ANALYST = "analyst"             # Analyst ratings/price targets
+    
+    # Forward-looking expectations (Tier 1)
+    ESTIMATE_SNAPSHOT = "estimate_snapshot"     # Consensus estimate at a point in time
+    ESTIMATE_REVISION = "estimate_revision"     # Analyst estimate revision
+    GUIDANCE = "guidance"                       # Company forward guidance
+    ANALYST_ACTION = "analyst_action"           # Rating change / price target update
+    
+    # Options-implied risk (Tier 2)
+    OPTIONS_SNAPSHOT = "options_snapshot"       # EOD options chain / IV surface
+    
+    # Positioning / constraints (Tier 2)
+    SHORT_INTEREST = "short_interest"           # Short interest + days to cover
+    BORROW_COST = "borrow_cost"                 # Stock borrow fee rate
+    ETF_FLOW = "etf_flow"                       # ETF inflow/outflow
+    INSTITUTIONAL_13F = "institutional_13f"     # 13F institutional holdings
+    
+    # Survivorship / security master (Tier 0)
+    SECURITY_MASTER = "security_master"         # Ticker changes, delistings, mergers
+    DELISTING = "delisting"                     # Delisting event with terminal price
 
 
 class EventTiming(Enum):

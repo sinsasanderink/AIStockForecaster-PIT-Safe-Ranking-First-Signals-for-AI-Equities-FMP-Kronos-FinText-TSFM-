@@ -2,43 +2,37 @@
 Data Infrastructure Module
 ==========================
 
-Section 3: Data & Point-in-Time Infrastructure
+Section 3: Data & Point-in-Time Infrastructure (Extended)
 
-This module provides multi-source data acquisition with PIT-safe timestamps:
+Core Data Sources:
+1. FMP Client - Prices (split-adjusted), fundamentals, profiles
+2. Alpha Vantage Client - Earnings calendar, earnings surprises
+3. SEC EDGAR Client - Filing timestamps (gold standard for PIT)
 
-1. FMP Client (Financial Modeling Prep)
-   - Historical prices (OHLCV) - split-adjusted via /stable/historical-price-eod/full
-   - Fundamentals (income, balance, cashflow with filingDate)
-   - Company profiles
-   
-2. Alpha Vantage Client
-   - Earnings calendar (dates, but not BMO/AMC timing)
-   
-3. SEC EDGAR Client (GOLD STANDARD for PIT)
-   - Filing timestamps (acceptanceDateTime - exact public availability)
-   - XBRL fundamentals
-   - 8-K filings for earnings releases
+Storage:
+4. DuckDB PIT Store - All queries filter by observed_at <= asof
+5. Event Store - Discrete events with PIT-safe timestamps
+6. Security Master - Identifier mapping, ticker changes, delistings
 
-4. DuckDB PIT Store
-   - All timestamps in UTC
-   - observed_at filtering on all queries
-   
-5. Trading Calendar
-   - NYSE holidays and trading days
-   - Cutoff time handling (4pm ET)
+Forward-Looking Data (Chapter 3 Extensions):
+7. Expectations Client - Earnings surprises, estimates, analyst actions
+8. Positioning Client - Short interest, 13F, ETF flows (stubs for paid APIs)
+9. Options Client - IV surfaces, implied moves (stubs for paid APIs)
 
-6. Event Store (NEW)
-   - Discrete events (earnings, filings, news, sentiment)
-   - PIT-safe with observed_at filtering
-   - Sentiment aggregation utilities
+Calendar:
+10. Trading Calendar - NYSE holidays, cutoffs, DST handling
+
+NOTE: Many advanced endpoints require FMP Starter/Pro tier.
+Free tier provides: prices, fundamentals, profiles, earnings surprises (via AV).
 """
 
 from .fmp_client import FMPClient, FMPError, RateLimitError
 from .pit_store import DuckDBPITStore
 from .trading_calendar import TradingCalendarImpl
 from .event_store import EventStore, Event, EventType, EventTiming
+from .security_master import SecurityMaster, SecurityIdentifier, SecurityEventType
 
-# Lazy imports for optional clients
+# Lazy imports for optional clients (avoids import errors if deps missing)
 def get_alphavantage_client():
     """Get Alpha Vantage client (requires ALPHAVANTAGE_KEYS in .env)."""
     from .alphavantage_client import AlphaVantageClient
@@ -49,16 +43,41 @@ def get_sec_client(contact_email=None):
     from .sec_edgar_client import SECEdgarClient
     return SECEdgarClient(contact_email=contact_email)
 
+def get_expectations_client():
+    """Get expectations data client (earnings surprises, estimates)."""
+    from .expectations_client import ExpectationsClient
+    return ExpectationsClient()
+
+def get_positioning_client():
+    """Get positioning data client (short interest, 13F, flows)."""
+    from .positioning_client import PositioningClient
+    return PositioningClient()
+
+def get_options_client():
+    """Get options data client (IV, implied moves)."""
+    from .options_client import OptionsClient
+    return OptionsClient()
+
 __all__ = [
+    # Core clients
     "FMPClient",
     "FMPError", 
     "RateLimitError",
+    # Storage
     "DuckDBPITStore",
-    "TradingCalendarImpl",
     "EventStore",
     "Event",
     "EventType",
     "EventTiming",
+    "SecurityMaster",
+    "SecurityIdentifier",
+    "SecurityEventType",
+    # Calendar
+    "TradingCalendarImpl",
+    # Factory functions
     "get_alphavantage_client",
     "get_sec_client",
+    "get_expectations_client",
+    "get_positioning_client",
+    "get_options_client",
 ]

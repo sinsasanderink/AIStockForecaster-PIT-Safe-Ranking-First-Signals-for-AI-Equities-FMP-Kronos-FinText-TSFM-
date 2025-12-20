@@ -395,52 +395,145 @@ python -c "from src.data.event_store import test_event_store; test_event_store()
 
 ---
 
-## What Needs To Be Done
+## Chapter 3 Extensions (COMPLETE)
 
-### Section 4: Survivorship-Safe Dynamic Universe
+### New Data Clients Implemented
 
-**Key Resource:** FMP has a "Survivorship Bias Free API" endpoint (legacy v4) specifically for this.
-See: [FMP Survivorship Bias Free](https://site.financialmodelingprep.com/developer/docs)
+| Client | Status | Free Tier? | Data Available |
+|--------|--------|------------|----------------|
+| `ExpectationsClient` | ✅ Complete | ✅ AV | Earnings surprises with BMO/AMC |
+| `PositioningClient` | 🔲 Stubs | ❌ | Short interest, 13F, ETF flows |
+| `OptionsClient` | 🔲 Stubs | ❌ | IV surfaces, implied moves |
+| `SecurityMaster` | ✅ Complete | ✅ | Ticker changes, delistings |
+
+### New EventTypes Added
+
+```python
+# Tier 1 - Forward-looking expectations
+ESTIMATE_SNAPSHOT    # Consensus estimate at a point in time
+ESTIMATE_REVISION    # Analyst estimate revision
+GUIDANCE             # Company forward guidance
+ANALYST_ACTION       # Rating change / price target update
+
+# Tier 2 - Options & Positioning
+OPTIONS_SNAPSHOT     # EOD options chain / IV surface
+SHORT_INTEREST       # Short interest + days to cover
+BORROW_COST          # Stock borrow fee rate
+ETF_FLOW             # ETF inflow/outflow
+INSTITUTIONAL_13F    # 13F institutional holdings
+
+# Tier 0 - Survivorship
+SECURITY_MASTER      # Ticker changes, delistings, mergers
+DELISTING            # Delisting event with terminal price
+```
+
+### Earnings Surprises with PIT Timing
+
+Alpha Vantage provides BMO/AMC timing (critical for PIT):
+
+```python
+from src.data import get_expectations_client
+
+client = get_expectations_client()
+surprises = client.get_earnings_surprises("NVDA")
+
+# Example output:
+# reported_date: 2024-11-19
+# report_time: "post-market"
+# observed_at: 2024-11-19 21:05:00 UTC (after 4pm ET)
+# surprise: 4.84%
+```
+
+### Chapter 3 Extension Test Results
+
+```
+============================================================
+CHAPTER 3 EXTENSIONS - TEST SUITE
+============================================================
+  ✓ PASS: 1_event_types       (17 event types)
+  ✓ PASS: 2_earnings_pit      (BMO/AMC handling)
+  ✓ PASS: 3_security_master   (ticker changes, delistings)
+  ✓ PASS: 4_positioning_pit   (13F uses filing_date!)
+  ✓ PASS: 5_options_pit       (IV at market close)
+  ✓ PASS: 6_eventstore        (PIT-safe storage)
+
+  Total: 6/6 tests passed
+```
+
+---
+
+## What Needs To Be Done (Future Chapters)
+
+### Chapter 4: Survivorship-Safe Dynamic Universe
+
+**Key Resource:** FMP has a "Survivorship Bias Free API" endpoint.
+See: [FMP Docs](https://site.financialmodelingprep.com/developer/docs)
+
+**Infrastructure Ready:**
+- ✅ SecurityMaster with stable IDs
+- ✅ Delisting tracking with terminal prices
+- ✅ Ticker change history
 
 **Tasks:**
-- [ ] Integrate FMP Survivorship Bias Free endpoint
-- [ ] Replace placeholder universe with real PIT queries
-- [ ] Implement universe reconstruction for any historical date
-- [ ] Add delisted stock tracking
-- [ ] Survivorship audit automation
+- [ ] Build historical universe reconstruction using stable IDs (not tickers)
+- [ ] Implement top-N by market cap as-of T with liquidity/price thresholds
+- [ ] Persist constituent membership by rebalance date (replayable)
+- [ ] Implement mergers / ticker changes / corporate action continuity
+- [ ] Implement delistings handling (keep names in historical universe)
+- [ ] Apply delisting returns / terminal pricing so "failures" don't disappear
+- [ ] Make missing data explicit (model missingness; don't silently drop)
 
-### Section 5: Feature Engineering
+**Acceptance Criteria:**
+- Constituents vary through time
+- Includes both winners AND failures
+- Reproducible for any historical date
 
-**Core Features (ALL are important):**
+### Chapter 5: Feature Engineering (Using New Data)
+
+**Expectations Features:**
+- [ ] Revisions momentum (direction of estimate changes)
+- [ ] Estimate dispersion (analyst disagreement)
+- [ ] Surprise magnitude/direction
+- [ ] Guidance direction/intensity
+
+**Options Features (requires paid data):**
+- [ ] IV level/skew/term slope
+- [ ] Implied move around earnings
+- [ ] IV percentile (vs historical)
+
+**Positioning Features (requires paid data):**
+- [ ] Short interest trends, squeeze risk proxies
+- [ ] ETF flow momentum
+- [ ] 13F ownership shifts
+
+**Core Features:**
 - [ ] Price & volume (momentum, volatility, relative strength)
 - [ ] Fundamentals (growth, margins, valuation ratios)
 - [ ] Events (earnings surprise, days since filing)
 - [ ] Regime (VIX, market breadth, sector rotation)
-- [ ] **Sentiment** (now integrated via EventStore - NOT optional!)
+- [ ] **Sentiment** (via EventStore)
 
-**Sentiment Implementation:**
-```python
-# In feature builder
-sentiment_7d = event_store.get_sentiment_score(ticker, asof, lookback_days=7)
-news_volume = event_store.count_events(ticker, EventType.NEWS, asof, lookback_days=7)
-days_since_earnings = event_store.days_since_event(ticker, EventType.EARNINGS, asof)
-```
+**Availability Masks:** All features must have strict "known at time T" enforcement.
 
-### Section 6: Evaluation Framework
+### Chapter 6: Evaluation Realism
 
-- [ ] Walk-forward validation
+- [ ] Re-run walk-forward once universe is survivorship-safe
+- [ ] Confirm performance doesn't depend on survivorship bias
+- [ ] Add diagnostics for signals that break under constraints (borrow/short crowding)
 - [ ] Purging & embargo (gap between train/test)
 - [ ] Ranking metrics (top-N hit rate, rank correlation)
-- [ ] PIT audit integration in backtest loop
 
-### Sections 7-13: Models & Production
+### Chapter 11/12: Fusion + Regime-Aware Ensembling
 
-- [ ] Kronos integration
-- [ ] FinText/TSFM integration
-- [ ] ML baselines (GBDT)
-- [ ] Fusion model
-- [ ] Calibration
-- [ ] Production deployment
+- [ ] Add expectations/options/positioning blocks into fusion
+- [ ] Add regime-aware weighting (earnings windows vs normal regimes)
+- [ ] Check redundancy (correlation with Kronos/FinText; keep only additive blocks)
+
+### Chapter 13/14: Confidence + Monitoring
+
+- [ ] Use options/dispersion for confidence stratification
+- [ ] Monitoring alerts for estimates/options feed gaps
+- [ ] Drift detection for positioning metrics
 
 ---
 
@@ -457,6 +550,11 @@ days_since_earnings = event_store.days_since_event(ticker, EventType.EARNINGS, a
 | History (5+ years) | May need more | Longer history |
 | Earnings calendar | ❌ Use SEC/AV instead | ✅ Available |
 | Key Metrics endpoint | ❌ Compute yourself | ✅ Available |
+| **Analyst estimates** | ❌ | ✅ Required |
+| **Short interest** | ❌ | ✅ Required |
+| **13F holdings** | ❌ (use SEC parsing) | ✅ Easier |
+| **Options data** | ❌ | ❌ (use CBOE/OptionMetrics) |
+| **Survivorship data** | ❌ | ✅ Available |
 | Survivorship Bias Free | Check if available | ✅ Documented |
 
 **Verdict:** Free tier is sufficient for development. Consider upgrading only if:
@@ -522,7 +620,11 @@ AI Stock Forecast/
 │   │   ├── sec_edgar_client.py   # SEC EDGAR client
 │   │   ├── pit_store.py          # DuckDB PIT store
 │   │   ├── trading_calendar.py   # NYSE calendar
-│   │   └── event_store.py        # Event store (NEW)
+│   │   ├── event_store.py        # Event store (17 event types)
+│   │   ├── expectations_client.py # Earnings surprises, estimates (Ch.3 ext)
+│   │   ├── positioning_client.py  # Short interest, 13F, ETF flows (stubs)
+│   │   ├── options_client.py      # IV surfaces, implied moves (stubs)
+│   │   └── security_master.py     # Identifier mapping, delistings
 │   ├── outputs/
 │   │   ├── signals.py            # Signal dataclasses
 │   │   ├── reports.py            # Report generation
@@ -541,7 +643,8 @@ AI Stock Forecast/
 │   ├── test_signals.py           # Signal unit tests
 │   ├── test_reports.py           # Report unit tests
 │   ├── test_section3.py          # Data infrastructure tests
-│   └── test_section4_gates.py    # Gate tests for Section 4
+│   ├── test_section4_gates.py    # Gate tests for Section 4
+│   └── test_chapter3_extensions.py # Chapter 3 extension tests
 ├── data/                         # Downloaded data (gitignored)
 ├── outputs/                      # Generated reports (gitignored)
 ├── requirements/
