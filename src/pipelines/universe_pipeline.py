@@ -67,8 +67,12 @@ class TickerMetadata:
     
     Stores the data AS OF the universe construction date,
     enabling audit and debugging of universe decisions.
+    
+    CRITICAL: stable_id is the primary identity, NOT ticker.
+    Ticker can change (e.g., FB → META), stable_id cannot.
     """
     ticker: str
+    stable_id: Optional[str] = None  # Primary identity (survives ticker changes)
     
     # Data as of the construction date
     asof_price: Optional[float] = None
@@ -89,6 +93,7 @@ class TickerMetadata:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "ticker": self.ticker,
+            "stable_id": self.stable_id,
             "asof_price": self.asof_price,
             "asof_adv_20": self.asof_adv_20,
             "asof_mcap": self.asof_mcap,
@@ -100,6 +105,13 @@ class TickerMetadata:
         }
 
 
+class SurvivorshipStatus:
+    """Status of survivorship data availability."""
+    FULL = "full"          # Using survivorship-bias-free data feed
+    PARTIAL = "partial"    # Seed universe only (may miss historical delistings)
+    UNKNOWN = "unknown"    # Not verified
+
+
 @dataclass
 class UniverseResult:
     """
@@ -107,9 +119,13 @@ class UniverseResult:
     
     Includes metadata for EVERY ticker considered (not just included),
     enabling survivorship audits and debugging.
+    
+    CRITICAL: stable_ids is the canonical representation for historical replay.
+    Use stable_ids (not tickers) when reconstructing historical universes.
     """
     asof_date: date
     tickers: List[str]  # Included tickers (final universe)
+    stable_ids: List[str] = field(default_factory=list)  # Canonical IDs for replay
     
     # Full metadata for all tickers (included AND excluded)
     ticker_metadata: Dict[str, TickerMetadata] = field(default_factory=dict)
@@ -119,6 +135,9 @@ class UniverseResult:
     candidates_considered: int = 0
     excluded_count: int = 0
     warnings: List[str] = field(default_factory=list)
+    
+    # Survivorship status (IMPORTANT for backtest validity)
+    survivorship_status: str = SurvivorshipStatus.PARTIAL
     
     def __len__(self) -> int:
         return len(self.tickers)
@@ -143,12 +162,21 @@ class UniverseResult:
         return reasons
     
     def summary(self) -> str:
+        # Survivorship warning
+        surv_warning = ""
+        if self.survivorship_status == SurvivorshipStatus.PARTIAL:
+            surv_warning = " ⚠️ PARTIAL SURVIVORSHIP"
+        elif self.survivorship_status == SurvivorshipStatus.UNKNOWN:
+            surv_warning = " ⚠️ SURVIVORSHIP UNKNOWN"
+        
         lines = [
-            f"📊 Universe as of {self.asof_date}",
+            f"📊 Universe as of {self.asof_date}{surv_warning}",
             f"  Constituents: {len(self.tickers)}",
+            f"  Stable IDs: {len(self.stable_ids)}",
             f"  Candidates considered: {self.candidates_considered}",
             f"  Excluded: {self.excluded_count}",
             f"  Filters: {', '.join(self.filters_applied)}",
+            f"  Survivorship: {self.survivorship_status}",
         ]
         
         # Exclusion breakdown
@@ -168,16 +196,31 @@ class UniverseResult:
         
         return "\n".join(lines)
     
+    def get_ticker_for_stable_id(self, stable_id: str) -> Optional[str]:
+        """Look up ticker by stable_id (for historical replay)."""
+        for meta in self.ticker_metadata.values():
+            if meta.stable_id == stable_id and meta.passed_filters:
+                return meta.ticker
+        return None
+    
+    def get_stable_id_for_ticker(self, ticker: str) -> Optional[str]:
+        """Look up stable_id by ticker."""
+        if ticker in self.ticker_metadata:
+            return self.ticker_metadata[ticker].stable_id
+        return None
+    
     def to_dict(self) -> Dict:
         """Serialize for storage/export."""
         return {
             "asof_date": self.asof_date.isoformat(),
             "tickers": self.tickers,
+            "stable_ids": self.stable_ids,
             "ticker_metadata": {t: m.to_dict() for t, m in self.ticker_metadata.items()},
             "filters_applied": self.filters_applied,
             "candidates_considered": self.candidates_considered,
             "excluded_count": self.excluded_count,
             "warnings": self.warnings,
+            "survivorship_status": self.survivorship_status,
         }
 
 

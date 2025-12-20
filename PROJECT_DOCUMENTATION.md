@@ -464,6 +464,60 @@ CHAPTER 3 EXTENSIONS - TEST SUITE
 
 ## What Needs To Be Done (Future Chapters)
 
+---
+
+### ⚠️ CRITICAL NOTES FOR CHAPTER 4 (URGENT)
+
+Before or during Chapter 4 implementation, ensure these items are addressed:
+
+#### 1. Stable IDs Must Be First-Class (IMPLEMENTED ✅)
+
+**Problem:** Ticker changes (FB→META, TWTR→delisted) break historical universe replay if you key on tickers.
+
+**Solution Applied:**
+- `TickerMetadata` now includes `stable_id` field
+- `UniverseResult` includes `stable_ids` list (canonical for replay)
+- Helper methods: `get_ticker_for_stable_id()`, `get_stable_id_for_ticker()`
+- All universe construction must key on stable IDs end-to-end
+
+**Enforcement:**
+```python
+# BAD: using ticker as identity
+historical_universe = [ticker for ticker in get_all_tickers()]
+
+# GOOD: using stable_id as identity
+historical_universe = [(stable_id, get_ticker_for_stable_id(stable_id, asof_date)) 
+                       for stable_id in get_all_stable_ids()]
+```
+
+#### 2. Conservative Earnings Time Handling (VERIFIED ✅)
+
+**Problem:** If BMO/AMC timing is missing, you might leak information.
+
+**Solution Verified in `ExpectationsClient._get_observed_at_from_report()`:**
+```python
+if report_time == "pre-market":
+    # BMO: available at market open (9:30 ET)
+elif report_time == "post-market":
+    # AMC: available at market close + buffer (4:05 ET)
+else:
+    # UNKNOWN: conservative → next market open
+    next_open = calendar.get_next_trading_day(reported_date)
+```
+
+#### 3. Survivorship Status Labels (IMPLEMENTED ✅)
+
+**Problem:** Until a real survivorship-bias-free feed is used, backtest results may be optimistic.
+
+**Solution Applied:**
+- `SurvivorshipStatus` class with `FULL`, `PARTIAL`, `UNKNOWN`
+- `UniverseResult.survivorship_status` defaults to `PARTIAL`
+- Summary output shows warning: "⚠️ PARTIAL SURVIVORSHIP"
+
+**Rule:** Don't trust backtest results until survivorship_status = FULL.
+
+---
+
 ### Chapter 4: Survivorship-Safe Dynamic Universe
 
 **Key Resource:** FMP has a "Survivorship Bias Free API" endpoint.
@@ -473,6 +527,8 @@ See: [FMP Docs](https://site.financialmodelingprep.com/developer/docs)
 - ✅ SecurityMaster with stable IDs
 - ✅ Delisting tracking with terminal prices
 - ✅ Ticker change history
+- ✅ UniverseResult keyed on stable_ids
+- ✅ Survivorship status labels
 
 **Tasks:**
 - [ ] Build historical universe reconstruction using stable IDs (not tickers)
@@ -482,6 +538,7 @@ See: [FMP Docs](https://site.financialmodelingprep.com/developer/docs)
 - [ ] Implement delistings handling (keep names in historical universe)
 - [ ] Apply delisting returns / terminal pricing so "failures" don't disappear
 - [ ] Make missing data explicit (model missingness; don't silently drop)
+- [ ] Wire SecurityMaster into universe pipeline
 
 **Acceptance Criteria:**
 - Constituents vary through time
