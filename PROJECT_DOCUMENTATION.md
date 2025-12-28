@@ -649,32 +649,113 @@ else:
 - ✅ Includes delisted names (active=false)
 - ✅ Reproducible for any historical date
 
-### Chapter 5: Feature Engineering (Using New Data)
+### Chapter 5: Feature Engineering (Bias-Safe) — 🔲 NEXT
 
-**Expectations Features:**
-- [ ] Revisions momentum (direction of estimate changes)
-- [ ] Estimate dispersion (analyst disagreement)
-- [ ] Surprise magnitude/direction
-- [ ] Guidance direction/intensity
+#### Infrastructure Available (from Chapters 3-4) ✅
+| Component | Module | What It Provides |
+|-----------|--------|------------------|
+| Prices | `FMPClient.get_historical_prices()` | Split-adjusted OHLCV with `observed_at` |
+| Fundamentals | `FMPClient.get_income_statement()` etc. | With `fillingDate` for PIT |
+| Volume/ADV | `DuckDBPITStore.get_avg_volume()` | Computed from OHLCV |
+| Events | `EventStore` | EARNINGS, FILING, SENTIMENT with PIT |
+| Earnings | `AlphaVantageClient` + `ExpectationsClient` | BMO/AMC timing, surprises |
+| Regime/VIX | `FMPClient.get_index_historical()` | SPY, VIX for regime detection |
+| Universe | `UniverseBuilder` | FULL survivorship via Polygon |
+| ID Mapping | `SecurityMaster` | Stable IDs, ticker changes |
+| Calendar | `TradingCalendarImpl` | NYSE holidays, cutoffs |
+| Caching | All clients | `data/cache/*` directories |
 
-**Options Features (requires paid data):**
-- [ ] IV level/skew/term slope
-- [ ] Implied move around earnings
-- [ ] IV percentile (vs historical)
+#### API Keys Available ✅
+- `FMP_KEYS` - Prices, fundamentals, profiles (free tier: 250/day)
+- `POLYGON_KEYS` - Symbol master, universe (free tier: 5/min)
+- `ALPHAVANTAGE_KEYS` - Earnings calendar (free tier: 25/day)
 
-**Positioning Features (requires paid data):**
-- [ ] Short interest trends, squeeze risk proxies
-- [ ] ETF flow momentum
-- [ ] 13F ownership shifts
+---
 
-**Core Features:**
-- [ ] Price & volume (momentum, volatility, relative strength)
-- [ ] Fundamentals (growth, margins, valuation ratios)
-- [ ] Events (earnings surprise, days since filing)
-- [ ] Regime (VIX, market breadth, sector rotation)
-- [ ] **Sentiment** (via EventStore)
+#### Chapter 5 Detailed TODO
 
-**Availability Masks:** All features must have strict "known at time T" enforcement.
+**5.1 Targets (Labels)**
+- [ ] Implement forward excess return calculation vs QQQ benchmark
+- [ ] Create label generator for 20/60/90 trading day horizons
+- [ ] Ensure labels are strictly PIT-safe (no future leakage)
+
+**5.2 Price & Volume Features**
+- [ ] Momentum features (1m, 3m, 6m, 12m returns)
+- [ ] Volatility (realized vol, vol-of-vol)
+- [ ] Drawdown (max drawdown, current vs high)
+- [ ] Relative strength vs universe median
+- [ ] Beta vs benchmark (rolling window)
+- [ ] ADV and volatility-adjusted ADV
+
+**5.3 Fundamental Features (Relative, Normalized)**
+- [ ] P/E vs own 3-year history (z-score)
+- [ ] P/S vs sector median
+- [ ] Margins vs sector peers
+- [ ] Revenue/earnings growth vs sector
+- [ ] All ratios rank-transformed cross-sectionally
+
+**5.4 Event & Calendar Features**
+- [ ] Days to next earnings
+- [ ] Days since last earnings
+- [ ] Post-earnings drift window indicator
+- [ ] Surprise magnitude (last N quarters)
+- [ ] Filing recency (days since last 10-Q/10-K)
+
+**5.5 Regime & Macro Features**
+- [ ] VIX level and percentile
+- [ ] Market trend regime (bull/bear/neutral)
+- [ ] Sector rotation indicators
+- [ ] All features timestamped with cutoff enforcement
+
+**5.6 Missingness Masks**
+- [ ] Create explicit "known at time T" indicators
+- [ ] Missingness as first-class feature (not just imputation)
+- [ ] Track data coverage statistics
+
+**5.7 Feature Hygiene & Redundancy Control (NEW)**
+- [ ] Cross-sectional z-score/rank standardization
+- [ ] Rolling Spearman correlation matrix
+- [ ] Feature clustering & block aggregation (don't drop singles)
+- [ ] VIF diagnostics for tabular features (diagnostic, not hard filter)
+- [ ] Rolling IC stability checks (more important than VIF)
+- [ ] Sign consistency analysis across time
+
+> **Principle**: A feature with IC 0.04 once and −0.01 later is worse than IC 0.02 stable forever.
+
+**5.8 Feature Neutralization (Evaluation-Only, Optional) (NEW)**
+- [ ] Sector-neutral IC computation
+- [ ] Beta-neutral IC computation
+- [ ] Market-neutral IC computation
+
+*Used for diagnostics to reveal where alpha comes from — not for training.*
+
+**Optional Paid-Tier Features:**
+- [ ] Expectations: Revisions momentum, estimate dispersion, guidance
+- [ ] Options: IV level/skew, implied move, IV percentile (requires paid data)
+- [ ] Positioning: Short interest, ETF flows, 13F shifts (requires paid data)
+
+---
+
+#### Testing & Validation Requirements
+- [ ] Unit tests for each feature block
+- [ ] PIT violation scanner on all features
+- [ ] Univariate IC ≥ 0.03 check for strong signals
+- [ ] IC stability across ≥70% of rolling windows
+- [ ] Feature coverage > 95% (post-masking)
+- [ ] Redundancy documented: correlation matrix, feature blocks
+
+#### Rate Limit Strategy
+1. Cache universe snapshots by rebalance date (Polygon: 5/min)
+2. Batch FMP requests where possible (profiles, quotes)
+3. Use Alpha Vantage sparingly (25/day limit)
+4. Store computed features in DuckDB for reuse
+
+#### Success Criteria
+- > 95% feature completeness (post-masking)
+- Strong univariate signals show IC ≳ 0.03
+- No feature introduces PIT violations
+- IC sign consistent across ≥70% of rolling windows
+- Redundancy understood: feature blocks documented
 
 ### Chapter 6: Evaluation Realism
 

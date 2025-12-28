@@ -54,23 +54,36 @@ AI_Stock_Forecast/
 │   │   ├── survivorship_audit.py # Survivorship bias checks
 │   │   └── corp_action_checks.py # Split/dividend validation
 │   │
-│   ├── data/                     # Section 3: Data Infrastructure ✅ COMPLETE
+│   ├── data/                     # Sections 3-4: Data Infrastructure ✅ COMPLETE
 │   │   ├── __init__.py
 │   │   ├── fmp_client.py         # FMP API client (split-adjusted OHLCV)
 │   │   ├── alphavantage_client.py # Alpha Vantage (earnings calendar)
 │   │   ├── sec_edgar_client.py   # SEC EDGAR (gold standard timestamps)
+│   │   ├── polygon_client.py     # Polygon symbol master (Ch4) ⭐ NEW
 │   │   ├── pit_store.py          # Point-in-time data storage (DuckDB)
-│   │   ├── event_store.py        # Event store (earnings, filings, sentiment) ⭐ NEW
+│   │   ├── event_store.py        # Event store (earnings, filings, sentiment)
+│   │   ├── security_master.py    # Stable IDs, ticker changes (Ch4) ⭐ NEW
+│   │   ├── universe_builder.py   # Survivorship-safe universe (Ch4) ⭐ NEW
 │   │   ├── trading_calendar.py   # NYSE calendar, cutoffs, holidays
-│   │   └── benchmarks.py         # Benchmark data (QQQ, XLK, SMH)
+│   │   ├── expectations_client.py # Earnings surprises, estimates
+│   │   ├── options_client.py     # Options data (stub for paid APIs)
+│   │   └── positioning_client.py # Short interest, 13F (stub for paid APIs)
+│   │
+│   ├── universe/                 # AI stock definitions (label-only)
+│   │   ├── __init__.py
+│   │   └── ai_stocks.py          # 100 AI stocks x 10 categories (tagging only)
 │   │
 │   ├── features/                 # Section 5: Feature Engineering (TODO)
 │   │   ├── __init__.py
-│   │   ├── price_features.py
-│   │   ├── fundamental_features.py
-│   │   ├── event_features.py
-│   │   ├── regime_features.py
-│   │   └── feature_store.py
+│   │   ├── labels.py             # 5.1 Forward excess returns
+│   │   ├── price_features.py     # 5.2 Momentum, volatility, drawdown
+│   │   ├── fundamental_features.py # 5.3 Relative ratios vs sector
+│   │   ├── event_features.py     # 5.4 Earnings, filings, calendars
+│   │   ├── regime_features.py    # 5.5 VIX, market trend, macro
+│   │   ├── missingness.py        # 5.6 "Known at time T" masks
+│   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF
+│   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC
+│   │   └── feature_store.py      # DuckDB storage for computed features
 │   │
 │   ├── models/                   # Sections 7-12: Models (TODO)
 │   │   ├── baselines/            # Section 7: Baseline models
@@ -321,16 +334,31 @@ Items that are noted in code but require later sections to implement.
 - `src/pipelines/data_pipeline.py`: Implement actual FMP data fetching
 - `src/interfaces.py`: `PITStore` and `TradingCalendar` have stubs; need real implementations
 
-### Section 4: Survivorship-Safe Dynamic Universe
-**Code TODOs:**
-- `src/pipelines/universe_pipeline.py`: Query real stock universe from PIT store
-- `src/interfaces.py`: Implement `UniverseStore` for historical universe snapshots
-- Enable `get_historical_universes()` with real data
+### Section 4: Survivorship-Safe Dynamic Universe ✅ COMPLETE
+**Implemented:**
+- `src/data/polygon_client.py`: Symbol master for universe-as-of-T
+- `src/data/universe_builder.py`: UniverseBuilder with SurvivorshipStatus
+- `src/data/security_master.py`: Stable IDs, ticker changes
+- `tests/test_chapter4_universe.py`: Comprehensive tests (7/7 passed)
 
-### Section 5: Feature Engineering
-**Notes:**
-- Features must respect PIT rules (use `observed_at` timestamps)
-- Feature store should integrate with audit modules
+### Section 5: Feature Engineering 🔲 NEXT
+**Files to create:**
+- `src/features/labels.py` - Forward excess returns (5.1)
+- `src/features/price_features.py` - Momentum, volatility, drawdown (5.2)
+- `src/features/fundamental_features.py` - Relative ratios vs sector (5.3)
+- `src/features/event_features.py` - Earnings, filings, calendars (5.4)
+- `src/features/regime_features.py` - VIX, market trend, macro (5.5)
+- `src/features/missingness.py` - "Known at time T" masks (5.6)
+- `src/features/hygiene.py` - Standardization, correlation, VIF (5.7)
+- `src/features/neutralization.py` - Sector/beta/market neutral IC (5.8)
+- `src/features/feature_store.py` - DuckDB storage for features
+
+**Key requirements:**
+- All features must use `observed_at <= asof` filtering
+- Cross-sectional standardization (z-score or rank)
+- VIF diagnostics (as diagnostic, not hard filter)
+- IC stability checks (more important than VIF)
+- Missingness as first-class feature
 
 ### Section 6: Evaluation Framework
 **Code TODOs:**
