@@ -108,12 +108,18 @@ def test_polygon_api_access():
 
 
 # =============================================================================
-# TEST 2: Universe Construction (No API - Fast)
+# TEST 2: Universe Construction (No API - Fast, PARTIAL status)
 # =============================================================================
 
 def test_universe_construction_fast():
-    """Test universe construction without API calls."""
-    print_test_header("2. Universe Construction (No API)")
+    """
+    Test universe construction without API calls.
+    
+    NOTE: This test uses ai_stocks.py for speed, which is label-only.
+    Result MUST be PARTIAL status, NOT FULL.
+    Production builds should use use_polygon=True for FULL status.
+    """
+    print_test_header("2. Universe Construction (PARTIAL - ai_stocks.py for speed)")
     
     all_passed = True
     
@@ -136,12 +142,12 @@ def test_universe_construction_fast():
     
     # Check basic properties
     has_candidates = snapshot.total_candidates > 0
-    print_result("Has candidates", has_candidates, f"{snapshot.total_candidates} from ai_stocks.py")
+    print_result("Has candidates", has_candidates, f"{snapshot.total_candidates} from ai_stocks.py (label-only)")
     all_passed = all_passed and has_candidates
     
-    # Status should be PARTIAL (no Polygon)
+    # Status MUST be PARTIAL (ai_stocks.py can NEVER produce FULL)
     is_partial = snapshot.survivorship_status == SurvivorshipStatus.PARTIAL
-    print_result("Status is PARTIAL", is_partial, snapshot.survivorship_status.value)
+    print_result("Status is PARTIAL (ai_stocks.py)", is_partial, f"{snapshot.survivorship_status.value} (FULL requires Polygon)")
     all_passed = all_passed and is_partial
     
     # All candidates should have AI category
@@ -361,10 +367,10 @@ def run_all_tests():
     
     tests = [
         ("1. Polygon API Access", test_polygon_api_access),
-        ("2. Universe Construction", test_universe_construction_fast),
-        ("3. Polygon Universe", test_polygon_universe),
+        ("2. Universe Construction (PARTIAL)", test_universe_construction_fast),
+        ("3. Polygon Universe (FULL capable)", test_polygon_universe),
         ("4. Stable ID Consistency", test_stable_id_consistency),
-        ("5. AI Stocks Integration", test_ai_stocks_integration),
+        ("5. AI Stocks Integration (label-only)", test_ai_stocks_integration),
         ("6. Delisted Tickers", test_delisted_tickers),
         ("7. Summary", test_summary),
     ]

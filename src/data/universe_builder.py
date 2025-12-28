@@ -47,10 +47,18 @@ ET = pytz.timezone("America/New_York")
 
 
 class SurvivorshipStatus(Enum):
-    """Survivorship bias status for universe."""
-    FULL = "full"           # Verified bias-free (Polygon + validated)
-    PARTIAL = "partial"     # Best effort (may miss some delistings)
-    UNKNOWN = "unknown"     # Not verified (don't use for backtests)
+    """
+    Survivorship bias status for universe.
+    
+    CRITICAL: 
+    - FULL requires Polygon as candidate source (use_polygon=True)
+    - ai_stocks.py can NEVER produce FULL status (it's label-only)
+    - Unit tests may use ai_stocks.py for speed (PARTIAL)
+    - Production backtests MUST use Polygon for FULL
+    """
+    FULL = "full"           # Polygon candidates + verified delisted coverage
+    PARTIAL = "partial"     # ai_stocks.py fallback (may miss delistings)
+    UNKNOWN = "unknown"     # Not verified (never use for backtests)
 
 
 @dataclass
@@ -464,7 +472,11 @@ class UniverseBuilder:
         """
         Get candidates from ai_stocks.py only.
         
-        This is a FALLBACK and results in PARTIAL survivorship.
+        WARNING: This ALWAYS results in PARTIAL survivorship status.
+        ai_stocks.py is label-only - it should NEVER be the production candidate source.
+        
+        Use case: Fast unit tests only.
+        Production: Must use Polygon (use_polygon=True) for FULL survivorship.
         """
         try:
             from src.universe.ai_stocks import AI_UNIVERSE

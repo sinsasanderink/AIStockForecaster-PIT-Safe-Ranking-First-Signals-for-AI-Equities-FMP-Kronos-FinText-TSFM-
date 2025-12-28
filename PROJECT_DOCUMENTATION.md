@@ -38,6 +38,32 @@ Building a **signal-only, PIT-safe, ranking-first** AI stock forecasting system 
 
 **Section 4 is COMPLETE.** Ready to proceed to Section 5 (Feature Engineering).
 
+### Section 5 Readiness Assessment
+
+**Infrastructure in place (✅):**
+| Component | Module | Status |
+|-----------|--------|--------|
+| Price data | `FMPClient.get_historical_prices()` | ✅ Split-adjusted, PIT-safe |
+| Fundamentals | `FMPClient.get_income_statement()` etc. | ✅ With fillingDate for PIT |
+| Volume/ADV | `DuckDBPITStore.get_avg_volume()` | ✅ Computed from OHLCV |
+| Events | `EventStore` | ✅ EARNINGS, FILING, SENTIMENT, etc. |
+| Earnings data | `AlphaVantageClient` + `ExpectationsClient` | ✅ With BMO/AMC timing |
+| Regime data | `FMPClient.get_index_historical()` | ✅ For SPY/VIX |
+| Security master | `SecurityMaster` | ✅ Stable IDs, ticker changes |
+| Universe | `UniverseBuilder` | ✅ FULL survivorship with Polygon |
+
+**Section 5 blockers (⚠️ None critical):**
+- Rate limits: Use caching (already implemented in FMP, AV, Polygon clients)
+- Options/positioning data: Stubs exist, require paid APIs if needed
+- Multi-year backtest data: May require careful API call management
+
+**Key considerations for Section 5:**
+1. **Cache universe snapshots** by rebalance date to avoid repeated Polygon calls
+2. **Batch API requests** where possible (FMP supports batch profiles)
+3. **PIT discipline**: All features must use `observed_at <= asof` filtering
+4. **Relative features preferred**: P/E vs sector median, not raw P/E
+5. **Missingness masks**: Explicit indicators for "known at time T"
+
 ---
 
 ## Completed Work
@@ -220,28 +246,38 @@ snapshot = builder.build(
 
 | Status | Meaning | When Used |
 |--------|---------|-----------|
-| FULL | Polygon + verified delisted coverage | Production backtests |
-| PARTIAL | ai_stocks.py only, may miss delistings | Development |
-| UNKNOWN | Not verified | Avoid for backtests |
+| FULL | Polygon candidates + verified delisted coverage | Production backtests |
+| PARTIAL | ai_stocks.py fallback, may miss delistings | Development/unit tests |
+| UNKNOWN | Not verified | Never use for backtests |
+
+**⚠️ CRITICAL:** `SurvivorshipStatus.FULL` is ONLY possible when:
+- `use_polygon=True` AND
+- Candidates come from Polygon's "as-of date T" query
+
+Unit tests may use `ai_stocks.py` for speed (PARTIAL); production builds MUST use Polygon (FULL).
 
 #### 4.4 Key Principles
 
-1. **ai_stocks.py is label-only**: Used for AI-relevance tagging, NOT as candidate universe
+1. **ai_stocks.py is label-only**: Used for AI-relevance tagging, NEVER as candidate universe
 2. **stable_id is primary identity**: CIK/FIGI survives ticker changes
 3. **All filtering as-of-T**: No future information leakage
+4. **Rate limit awareness**: Cache universe snapshots by rebalance date to avoid API hammering
 
 #### 4.5 Test Results
 
 ```
 CHAPTER 4 TEST RESULTS (7/7 passed):
   ✅ 1. Polygon API Access - CIK available
-  ✅ 2. Universe Construction - 100 candidates from ai_stocks.py
-  ✅ 3. Polygon Universe - Historical date queries work
+  ✅ 2. Universe Construction - 100 candidates from ai_stocks.py (PARTIAL - for speed)
+  ✅ 3. Polygon Universe - Historical date queries work (FULL capable)
   ✅ 4. Stable ID Consistency - Reproducible
-  ✅ 5. AI Stocks Integration - 10 categories, 100 tickers
-  ✅ 6. Delisted Tickers - delisted_utc available
+  ✅ 5. AI Stocks Integration - 10 categories, 100 tickers (label-only)
+  ✅ 6. Delisted Tickers - delisted_utc available (FULL capable)
   ✅ 7. Summary - All capabilities confirmed
 ```
+
+**Note:** Test 2 uses ai_stocks.py for speed with `skip_enrichment=True`. 
+This results in PARTIAL status. Production FULL builds use Polygon.
 
 **Polygon Free Tier Assessment:** ✅ SUFFICIENT for FULL survivorship
 - Historical date queries work
