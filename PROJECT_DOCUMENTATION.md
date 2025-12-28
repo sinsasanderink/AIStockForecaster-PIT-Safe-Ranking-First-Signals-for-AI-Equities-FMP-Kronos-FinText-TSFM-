@@ -674,10 +674,50 @@ else:
 
 #### Chapter 5 Detailed TODO
 
-**5.1 Targets (Labels)**
-- [ ] Implement forward excess return calculation vs QQQ benchmark
-- [ ] Create label generator for 20/60/90 trading day horizons
-- [ ] Ensure labels are strictly PIT-safe (no future leakage)
+**5.1 Targets (Labels) — DEFINITION LOCKED**
+
+**Return Definition (v1):**
+- **Split-adjusted close price return** (close-to-close)
+- Dividends NOT included in v1 (documented limitation, TODO for v2)
+- Source: FMP `/stable/historical-price-eod/full` (already split-adjusted)
+
+**Label Formula:**
+```
+y_i,T(H) = (P_i,T+H / P_i,T - 1) - (P_b,T+H / P_b,T - 1)
+
+where:
+  P_i,T    = stock i split-adjusted close on date T
+  P_i,T+H  = stock i split-adjusted close on date T+H trading days
+  P_b,T    = benchmark (QQQ) close on date T
+  H        = horizon in TRADING DAYS (20, 60, 90)
+```
+
+**Label Alignment (matches cutoff policy):**
+- Entry: price(T close) — 4:00pm ET cutoff
+- Exit: price(T+H close) — H trading days forward
+- Benchmark: same dates as stock
+- Calendar: Use `TradingCalendarImpl` for trading day arithmetic
+
+**Label Availability Rule (PIT-safe):**
+- Labels are future-looking, so NO `observed_at` in traditional sense
+- Labels mature at T+H close
+- During training/eval: filter by `asof >= T+H close`
+- Labels table supports walk-forward + purging/embargo from day 1
+
+**Storage:**
+- Same DuckDB pattern as features
+- Keys: `stable_id`, `ticker`, `date`, `horizon`
+- Values: `excess_return`, `stock_return`, `benchmark_return`
+- Metadata: `label_matured_at`, `benchmark_ticker`
+
+**Implementation Tasks:**
+- [x] Lock return definition (split-adjusted close, no dividends v1)
+- [x] Implement forward excess return calculation vs benchmark
+- [x] Create label generator for 20/60/90 trading day horizons
+- [x] Store labels in DuckDB with maturity timestamps
+- [x] Add tests for label correctness and PIT safety (8/8 tests pass)
+
+**Note:** QQQ (ETF) may require FMP paid tier. Consider yfinance for benchmark data.
 
 **5.2 Price & Volume Features**
 - [ ] Momentum features (1m, 3m, 6m, 12m returns)
