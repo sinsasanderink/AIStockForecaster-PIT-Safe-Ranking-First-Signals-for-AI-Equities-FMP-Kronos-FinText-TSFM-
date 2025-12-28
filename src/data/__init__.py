@@ -2,28 +2,29 @@
 Data Infrastructure Module
 ==========================
 
-Section 3: Data & Point-in-Time Infrastructure (Extended)
+Section 3 & 4: Data & Point-in-Time Infrastructure (Extended)
 
 Core Data Sources:
 1. FMP Client - Prices (split-adjusted), fundamentals, profiles
 2. Alpha Vantage Client - Earnings calendar, earnings surprises
 3. SEC EDGAR Client - Filing timestamps (gold standard for PIT)
+4. Polygon Client - Symbol master for survivorship-safe universe (NEW Ch4)
 
 Storage:
-4. DuckDB PIT Store - All queries filter by observed_at <= asof
-5. Event Store - Discrete events with PIT-safe timestamps
-6. Security Master - Identifier mapping, ticker changes, delistings
+5. DuckDB PIT Store - All queries filter by observed_at <= asof
+6. Event Store - Discrete events with PIT-safe timestamps
+7. Security Master - Identifier mapping, ticker changes, delistings
 
 Forward-Looking Data (Chapter 3 Extensions):
-7. Expectations Client - Earnings surprises, estimates, analyst actions
-8. Positioning Client - Short interest, 13F, ETF flows (stubs for paid APIs)
-9. Options Client - IV surfaces, implied moves (stubs for paid APIs)
+8. Expectations Client - Earnings surprises, estimates, analyst actions
+9. Positioning Client - Short interest, 13F, ETF flows (stubs for paid APIs)
+10. Options Client - IV surfaces, implied moves (stubs for paid APIs)
 
 Calendar:
-10. Trading Calendar - NYSE holidays, cutoffs, DST handling
+11. Trading Calendar - NYSE holidays, cutoffs, DST handling
 
 NOTE: Many advanced endpoints require FMP Starter/Pro tier.
-Free tier provides: prices, fundamentals, profiles, earnings surprises (via AV).
+Polygon is used as the symbol master for universe membership queries.
 """
 
 from .fmp_client import FMPClient, FMPError, RateLimitError
@@ -58,6 +59,11 @@ def get_options_client():
     from .options_client import OptionsClient
     return OptionsClient()
 
+def get_polygon_client():
+    """Get Polygon client for symbol master queries (Chapter 4)."""
+    from .polygon_client import PolygonClient
+    return PolygonClient()
+
 __all__ = [
     # Core clients
     "FMPClient",
@@ -80,4 +86,5 @@ __all__ = [
     "get_expectations_client",
     "get_positioning_client",
     "get_options_client",
+    "get_polygon_client",
 ]
