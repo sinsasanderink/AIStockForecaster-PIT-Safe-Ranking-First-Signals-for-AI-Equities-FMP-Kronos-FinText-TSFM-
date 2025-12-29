@@ -12,8 +12,8 @@ Submodules:
 - fundamental_features: Relative ratios vs sector (5.3) ✅
 - time_decay: Sample weighting for training (5.1-5.3) ✅
 - event_features: Earnings, filings, calendars (5.4) ✅
-- regime_features: VIX, market trend, macro (5.5) - TODO
-- missingness: "Known at time T" masks (5.6) - TODO
+- regime_features: VIX, market trend, macro (5.5) ✅
+- missingness: "Known at time T" masks (5.6) ✅
 - hygiene: Standardization, correlation, VIF (5.7) - TODO
 - neutralization: Sector/beta/market neutral IC (5.8) - TODO
 - feature_store: DuckDB storage for features - TODO
@@ -69,6 +69,22 @@ from .event_features import (
     get_event_feature_generator,
 )
 
+from .regime_features import (
+    RegimeFeatureGenerator,
+    RegimeFeatures,
+    MarketRegime,
+    VolatilityRegime,
+    get_regime_feature_generator,
+)
+
+from .missingness import (
+    MissingnessTracker,
+    MissingnessFeatures,
+    CoverageStats,
+    get_missingness_tracker,
+    FEATURE_CATEGORIES,
+)
+
 __all__ = [
     # Labels (5.1)
     "LabelGenerator",
@@ -98,5 +114,17 @@ __all__ = [
     "EventFeatures",
     "PEAD_WINDOW_DAYS",
     "get_event_feature_generator",
+    # Regime Features (5.5)
+    "RegimeFeatureGenerator",
+    "RegimeFeatures",
+    "MarketRegime",
+    "VolatilityRegime",
+    "get_regime_feature_generator",
+    # Missingness (5.6)
+    "MissingnessTracker",
+    "MissingnessFeatures",
+    "CoverageStats",
+    "get_missingness_tracker",
+    "FEATURE_CATEGORIES",
 ]
 

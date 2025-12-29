@@ -80,6 +80,8 @@ AI_Stock_Forecast/
 │   │   ├── fundamental_features.py # 5.3 Relative ratios vs sector ✅
 │   │   ├── time_decay.py         # Sample weighting for training ✅
 │   │   ├── event_features.py     # 5.4 Earnings, filings, calendars ✅
+│   │   ├── regime_features.py    # 5.5 VIX, market trend, sector rotation ✅
+│   │   ├── missingness.py        # 5.6 Coverage tracking, availability masks ✅
 │   │   ├── regime_features.py    # 5.5 VIX, market trend, macro
 │   │   ├── missingness.py        # 5.6 "Known at time T" masks
 │   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF
@@ -349,9 +351,10 @@ Items that are noted in code but require later sections to implement.
 - `src/features/fundamental_features.py` - Relative ratios vs sector (5.3) ✅
 - `src/features/time_decay.py` - Sample weighting for training ✅
 - `src/features/event_features.py` - Earnings, filings, calendars (5.4) ✅
+- `src/features/regime_features.py` - VIX, market trend, sector rotation (5.5) ✅
+- `src/features/missingness.py` - Coverage tracking, availability masks (5.6) ✅
 
 **Files to create:**
-- `src/features/regime_features.py` - VIX, market trend, macro (5.5)
 - `src/features/missingness.py` - "Known at time T" masks (5.6)
 - `src/features/hygiene.py` - Standardization, correlation, VIF (5.7)
 - `src/features/neutralization.py` - Sector/beta/market neutral IC (5.8)

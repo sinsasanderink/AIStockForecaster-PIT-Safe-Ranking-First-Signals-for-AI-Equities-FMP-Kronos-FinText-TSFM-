@@ -32,7 +32,7 @@ Building a **signal-only, PIT-safe, ranking-first** AI stock forecasting system 
 | 2. CLI & Pipelines | ✅ Complete | Commands: download-data, build-universe, score, make-report |
 | 3. Data Infrastructure | ✅ Complete | FMP, Alpha Vantage, SEC EDGAR, Event Store |
 | 4. Survivorship-Safe Universe | ✅ Complete | Polygon symbol master + UniverseBuilder with stable_id |
-| 5. Feature Engineering | 🟡 In Progress | 5.1 Labels ✅, 5.2 Price ✅, 5.3 Fundamentals ✅, 5.4 Events ✅ |
+| 5. Feature Engineering | 🟡 In Progress | 5.1-5.4 ✅, 5.5 Regime ✅, 5.6 Missingness ✅ |
 | 6. Evaluation Framework | 🔲 Pending | Walk-forward, purging/embargo, ranking metrics |
 | 7-13. Models & Production | 🔲 Pending | Kronos, FinText, baselines, deployment |
 
@@ -830,16 +830,56 @@ Example (3-year half-life):
 **Files:** `src/features/event_features.py`
 **Tests:** 9/9 passed in `tests/test_event_features.py`
 
-**5.5 Regime & Macro Features**
-- [ ] VIX level and percentile
-- [ ] Market trend regime (bull/bear/neutral)
-- [ ] Sector rotation indicators
-- [ ] All features timestamped with cutoff enforcement
+**5.5 Regime & Macro Features ✅ COMPLETE**
 
-**5.6 Missingness Masks**
-- [ ] Create explicit "known at time T" indicators
-- [ ] Missingness as first-class feature (not just imputation)
-- [ ] Track data coverage statistics
+| Feature | Description | Status |
+|---------|-------------|--------|
+| `vix_level` | Raw VIX level | ✅ |
+| `vix_percentile` | VIX percentile over 2-year window | ✅ |
+| `vix_change_5d` | 5-day VIX change | ✅ |
+| `vix_regime` | low/normal/elevated/high classification | ✅ |
+| `market_return_5d` | 5-day SPY return | ✅ |
+| `market_return_21d` | 21-day (~1 month) SPY return | ✅ |
+| `market_return_63d` | 63-day (~3 month) SPY return | ✅ |
+| `market_vol_21d` | 21-day realized volatility | ✅ |
+| `market_regime` | bull/bear/neutral classification | ✅ |
+| `above_ma_50` | Price > 50-day MA | ✅ |
+| `above_ma_200` | Price > 200-day MA | ✅ |
+| `ma_50_200_cross` | (MA50 - MA200) / MA200 | ✅ |
+| `tech_vs_staples` | XLK vs XLP relative strength | ✅ |
+| `tech_vs_utilities` | XLK vs XLU relative strength | ✅ |
+| `risk_on_indicator` | Composite risk-on/off signal | ✅ |
+
+**Key:** Market-level features common to all stocks in universe.
+**Files:** `src/features/regime_features.py`
+**Tests:** 10/10 passed in `tests/test_regime_missingness.py`
+
+**5.6 Missingness Masks ✅ COMPLETE**
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| `coverage_pct` | Overall feature coverage (0-1) | ✅ |
+| `price_coverage` | Price feature category coverage | ✅ |
+| `fundamental_coverage` | Fundamental feature coverage | ✅ |
+| `event_coverage` | Event feature coverage | ✅ |
+| `regime_coverage` | Regime feature coverage | ✅ |
+| `has_price_data` | Boolean price availability flag | ✅ |
+| `has_fundamental_data` | Boolean fundamental availability | ✅ |
+| `has_earnings_data` | Boolean earnings availability | ✅ |
+| `is_new_stock` | < 252 days of history | ✅ |
+| `fundamental_staleness_days` | Days since last fundamental update | ✅ |
+| `{feature}_available` | Per-feature availability mask | ✅ |
+
+**Key Philosophy:** Missingness is a SIGNAL, not just noise to impute.
+**Files:** `src/features/missingness.py`
+**Tests:** 10/10 passed in `tests/test_regime_missingness.py`
+
+**Coverage Report Generation:**
+```python
+from src.features.missingness import MissingnessTracker
+tracker = MissingnessTracker()
+print(tracker.generate_coverage_report(features_df))
+```
 
 **5.7 Feature Hygiene & Redundancy Control (NEW)**
 - [ ] Cross-sectional z-score/rank standardization
