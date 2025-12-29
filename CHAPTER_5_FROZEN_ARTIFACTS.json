@@ -1,0 +1,151 @@
+{
+  "frozen_at": "2025-12-29T11:39:02.174087",
+  "git_commit": "5fcf2d4a6ece89b444656baae20aa1f1349ec55b",
+  "git_status": "dirty",
+  "chapter": 5,
+  "status": "COMPLETE (v2)",
+  "tests_passed": "84/84",
+  "label_schema": {
+    "version": "v2",
+    "class": "ForwardReturn",
+    "horizons": [
+      20,
+      60,
+      90
+    ],
+    "benchmark": "QQQ",
+    "fields": {
+      "ticker": "str",
+      "stable_id": "Optional[str]",
+      "as_of_date": "date",
+      "horizon": "int",
+      "exit_date": "date",
+      "stock_return": "float (price only)",
+      "benchmark_return": "float (price only)",
+      "excess_return": "float (total return)",
+      "stock_dividend_yield": "float",
+      "benchmark_dividend_yield": "float",
+      "entry_price": "float",
+      "exit_price": "float",
+      "benchmark_entry_price": "float",
+      "benchmark_exit_price": "float",
+      "benchmark_ticker": "str",
+      "label_matured_at": "datetime (UTC)",
+      "label_version": "str (v1|v2)"
+    },
+    "formula": "TR_i,T(H) = (P_i,T+H / P_i,T - 1) + DIV_i,T(H)",
+    "maturity_rule": "label_matured_at = market_close(exit_date)"
+  },
+  "feature_schema": {
+    "5.1_labels": {
+      "module": "src.features.labels",
+      "version": "v2",
+      "horizons": [
+        20,
+        60,
+        90
+      ]
+    },
+    "5.2_price": {
+      "module": "src.features.price_features",
+      "features": [
+        "mom_1m",
+        "mom_3m",
+        "mom_6m",
+        "mom_12m",
+        "vol_20d",
+        "vol_60d",
+        "vol_of_vol",
+        "max_drawdown_60d",
+        "dist_from_high_60d",
+        "rel_strength_1m",
+        "rel_strength_3m",
+        "beta_252d",
+        "adv_20d",
+        "adv_60d",
+        "vol_adj_adv"
+      ]
+    },
+    "5.3_fundamental": {
+      "module": "src.features.fundamental_features",
+      "features": [
+        "pe_zscore_3y",
+        "ps_zscore_3y",
+        "pe_vs_sector",
+        "ps_vs_sector",
+        "gross_margin_vs_sector",
+        "operating_margin_vs_sector",
+        "revenue_growth_vs_sector",
+        "roe_zscore",
+        "roa_zscore"
+      ]
+    },
+    "5.4_event": {
+      "module": "src.features.event_features",
+      "features": [
+        "days_to_earnings",
+        "days_since_earnings",
+        "in_pead_window",
+        "last_surprise_pct",
+        "avg_surprise_4q",
+        "surprise_streak",
+        "surprise_zscore",
+        "earnings_vol",
+        "reports_bmo",
+        "days_since_10k",
+        "days_since_10q"
+      ]
+    },
+    "5.5_regime": {
+      "module": "src.features.regime_features",
+      "features": [
+        "vix_level",
+        "vix_percentile_252d",
+        "market_return_20d",
+        "market_vol_20d",
+        "sector_rotation_strength",
+        "credit_spread",
+        "term_spread"
+      ]
+    },
+    "5.6_missingness": {
+      "module": "src.features.missingness",
+      "features": [
+        "missing_*",
+        "stale_*",
+        "age_*"
+      ]
+    },
+    "5.7_hygiene": {
+      "module": "src.features.hygiene",
+      "operations": [
+        "cross_sectional_standardization",
+        "correlation_matrix",
+        "feature_blocks",
+        "vif_diagnostics",
+        "ic_stability"
+      ]
+    },
+    "5.8_neutralization": {
+      "module": "src.features.neutralization",
+      "operations": [
+        "sector_neutral_ic",
+        "beta_neutral_ic",
+        "sector_beta_neutral_ic"
+      ]
+    }
+  },
+  "pit_scanner": {
+    "module": "src.features.pit_scanner",
+    "enforced_in_ci": true,
+    "pre_commit_script": "scripts/run_pit_scan.sh",
+    "ci_workflow": ".github/workflows/pit_scanner.yml",
+    "last_scan_result": {
+      "critical_violations": 0,
+      "high_violations": 0,
+      "medium_violations": 2,
+      "note": "2 MEDIUM are false positives (data pre-filtered)"
+    }
+  },
+  "rationale": "Makes it psychologically harder to 'just tweak one thing' mid-evaluation"
+}

@@ -595,8 +595,63 @@ class LabelGenerator:
         df["exit_date"] = pd.to_datetime(df["exit_date"]).dt.date
         df["label_matured_at"] = pd.to_datetime(df["label_matured_at"])
         
+        # Log label composition (v2 only)
+        if self.label_version == "v2":
+            self._log_label_composition(df)
+        
         logger.info(f"Generated {len(df)} total labels for {len(tickers)} tickers")
         return df
+    
+    def _log_label_composition(self, labels_df: pd.DataFrame) -> None:
+        """
+        Log label composition statistics for interpretability.
+        
+        Reports:
+        - % of observations with non-zero dividends
+        - Average dividend contribution by horizon
+        
+        This is for sanity checking, not modeling.
+        """
+        if labels_df.empty:
+            return
+        
+        logger.info("=" * 60)
+        logger.info("LABEL COMPOSITION (v2 Total Return)")
+        logger.info("=" * 60)
+        
+        # Overall dividend statistics
+        has_stock_div = (labels_df["stock_dividend_yield"] > 0).sum()
+        has_bench_div = (labels_df["benchmark_dividend_yield"] > 0).sum()
+        total = len(labels_df)
+        
+        logger.info(f"Observations with non-zero dividends:")
+        logger.info(f"  Stock:     {has_stock_div}/{total} ({100*has_stock_div/total:.1f}%)")
+        logger.info(f"  Benchmark: {has_bench_div}/{total} ({100*has_bench_div/total:.1f}%)")
+        
+        # Average dividend contribution by horizon
+        logger.info(f"\nAverage dividend contribution by horizon:")
+        for horizon in sorted(labels_df["horizon"].unique()):
+            horizon_df = labels_df[labels_df["horizon"] == horizon]
+            avg_stock_div = horizon_df["stock_dividend_yield"].mean()
+            avg_bench_div = horizon_df["benchmark_dividend_yield"].mean()
+            avg_net_div = avg_stock_div - avg_bench_div
+            
+            logger.info(f"  H={horizon}d: stock={avg_stock_div:.4f} ({100*avg_stock_div:.2f}%), "
+                       f"bench={avg_bench_div:.4f} ({100*avg_bench_div:.2f}%), "
+                       f"net={avg_net_div:.4f} ({100*avg_net_div:.2f}%)")
+        
+        # Comparison: price return vs total return spread
+        logger.info(f"\nReturn composition (mean):")
+        mean_stock_price_ret = labels_df["stock_return"].mean()
+        mean_stock_div = labels_df["stock_dividend_yield"].mean()
+        mean_stock_total = mean_stock_price_ret + mean_stock_div
+        
+        logger.info(f"  Stock price return:   {100*mean_stock_price_ret:.2f}%")
+        logger.info(f"  Stock dividend yield: {100*mean_stock_div:.2f}%")
+        logger.info(f"  Stock total return:   {100*mean_stock_total:.2f}%")
+        logger.info(f"  Dividend contribution: {100*mean_stock_div/mean_stock_total if mean_stock_total != 0 else 0:.1f}% of total return")
+        
+        logger.info("=" * 60)
     
     def filter_mature_labels(
         self,
