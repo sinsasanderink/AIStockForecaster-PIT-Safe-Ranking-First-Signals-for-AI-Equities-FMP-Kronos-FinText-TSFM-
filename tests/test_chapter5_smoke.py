@@ -450,9 +450,31 @@ def test_integration():
 # TEST 8: Chapter 5 Completion Checklist
 # =============================================================================
 
+def test_pit_scanner_gate():
+    """Test PIT scanner as automated gate."""
+    print_test_header("8. PIT Scanner Gate")
+    
+    from src.features.pit_scanner import run_pit_scan
+    
+    all_passed = True
+    
+    violations, report = run_pit_scan()
+    
+    critical = [v for v in violations if v.severity == "CRITICAL"]
+    high = [v for v in violations if v.severity == "HIGH"]
+    
+    if critical or high:
+        print_result(f"PIT Scanner: {len(critical)} CRITICAL, {len(high)} HIGH violations", False)
+        all_passed = False
+    else:
+        print_result("PIT Scanner: No critical violations", True)
+    
+    return all_passed
+
+
 def test_completion_checklist():
     """Final checklist before declaring Chapter 5 complete."""
-    print_test_header("8. Chapter 5 Completion Checklist")
+    print_test_header("9. Chapter 5 Completion Checklist")
     
     checklist = {
         "5.1 Labels": "Forward excess return labels with PIT maturity",
@@ -504,7 +526,8 @@ def run_all_tests():
         ("5. Most-Missing Features", test_most_missing_features),
         ("6. Sanity Ranges", test_sanity_ranges),
         ("7. Integration", test_integration),
-        ("8. Completion Checklist", test_completion_checklist),
+        ("8. PIT Scanner Gate", test_pit_scanner_gate),
+        ("9. Completion Checklist", test_completion_checklist),
     ]
     
     for name, test_func in tests:
