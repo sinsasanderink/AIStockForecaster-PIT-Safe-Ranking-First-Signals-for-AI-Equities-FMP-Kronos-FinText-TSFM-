@@ -726,10 +726,16 @@ where:
 - During training/eval: filter by `asof >= T+H close`
 - Labels table supports walk-forward + purging/embargo from day 1
 
-**Benchmark Handling:**
-- If benchmark dividends/distributions available: use them (QQQ ETF distributions)
-- If not: documented as "stock total return vs benchmark price return"
-- Graceful fallback with logging
+**Benchmark Handling (HARD POLICY):**
+- **Preferred:** Stock TR vs Benchmark TR (total return for both)
+- **Fallback:** Stock TR vs Benchmark price return (if benchmark dividends unavailable)
+- **Monitoring Rule:**
+  - Log every fallback occurrence with ticker, date, horizon
+  - Count fallback rate: `n_fallback / n_total_labels`
+  - **Threshold:** Fallback must be <1% of labels
+  - **Action if threshold exceeded:** Re-run with alternative benchmark dividend source
+- **Rationale:** Even graceful fallback can create regime-dependent bias (ETF distributions matter in some windows)
+- **Implementation:** `LabelGenerator._calculate_dividend_yield()` logs fallback, `_log_label_composition()` reports fallback rate
 
 **Storage:**
 - Same DuckDB pattern as features
@@ -1016,10 +1022,10 @@ results = neutralization_report(
 #### Testing & Validation Requirements
 - [x] Unit tests for each feature block (5.1-5.8 all have tests, 84/84 passed)
 - [x] **PIT violation scanner on all features** (src/features/pit_scanner.py, 0 CRITICAL violations, enforced in CI)
-- [x] **Univariate IC ≥ 0.03 check** (FeatureHygiene.compute_ic_stability available, deferred to Chapter 6 evaluation)
-- [x] IC stability across ≥70% of rolling windows (FeatureHygiene.compute_ic_stability)
-- [x] Feature coverage > 95% (post-masking) (MissingnessTracker.compute_coverage_stats)
-- [x] Redundancy documented: correlation matrix, feature blocks (FeatureHygiene.identify_feature_blocks)
+- [x] **Univariate IC ≥ 0.03 check - IMPLEMENTED** (FeatureHygiene.compute_ic_stability ready, **to be executed in Chapter 6**)
+- [x] **IC stability tool - IMPLEMENTED** (FeatureHygiene.compute_ic_stability ready, **to be executed in Chapter 6**)
+- [x] Feature coverage > 95% (post-masking) - IMPLEMENTED (MissingnessTracker.compute_coverage_stats)
+- [x] Redundancy documentation - IMPLEMENTED (FeatureHygiene.identify_feature_blocks)
 
 #### Rate Limit Strategy
 1. Cache universe snapshots by rebalance date (Polygon: 5/min)

@@ -29,10 +29,16 @@ RATIONALE FOR v2:
 - Mature dividend payers (MSFT ~0.8% yield) vs growth stocks
 - Consistency: total return for both stock AND benchmark avoids distortion
 
-BENCHMARK HANDLING:
-- If benchmark total return (dividends) available: use it
-- If not: documented as "stock total return vs benchmark price return"
-- For QQQ (ETF): distributions may not be cleanly available on free tier
+BENCHMARK HANDLING (HARD POLICY):
+- **Preferred:** Stock TR vs Benchmark TR (total return for both)
+- **Fallback:** Stock TR vs Benchmark price return (if benchmark dividends unavailable)
+- **Monitoring Rule:**
+  - Log every fallback occurrence with ticker, date, horizon
+  - Count fallback rate: n_fallback / n_total_labels
+  - **Threshold:** Fallback must be <1% of labels
+  - **Action if exceeded:** Re-run with alternative benchmark dividend source
+- **Rationale:** Even graceful fallback can create regime-dependent bias (ETF distributions matter)
+- **Implementation:** _calculate_dividend_yield_with_fallback() tracks, _log_label_composition() reports
 
 LABEL ALIGNMENT (matches cutoff policy):
 - Entry: price(T close) — 4:00pm ET cutoff
@@ -236,6 +242,10 @@ class LabelGenerator:
         # Cache for price data
         self._price_cache: Dict[str, pd.DataFrame] = {}
         self._benchmark_cache: Optional[pd.DataFrame] = None
+        
+        # Fallback tracking (for benchmark dividend unavailability)
+        self._fallback_count = 0
+        self._fallback_details: List[Dict[str, Any]] = []
     
     def _get_fmp_client(self):
         """Lazy-load FMP client."""
@@ -432,6 +442,62 @@ class LabelGenerator:
         
         return float(div_yield)
     
+    def _calculate_dividend_yield_with_fallback(
+        self,
+        ticker: str,
+        entry_date: date,
+        exit_date: date,
+        entry_price: float,
+    ) -> Tuple[float, bool]:
+        """
+        Calculate dividend yield with fallback tracking.
+        
+        Returns:
+            Tuple of (dividend_yield, data_available)
+            
+        Where data_available is False if:
+        - API call failed
+        - Data format unexpected
+        - True otherwise (even if yield is 0.0 because no dividends were paid)
+        
+        This distinguishes "no dividends paid" from "dividend data unavailable".
+        """
+        if entry_price <= 0:
+            return 0.0, False
+        
+        buffer_start = entry_date - timedelta(days=10)
+        buffer_end = exit_date + timedelta(days=10)
+        
+        try:
+            divs = self._get_dividends(ticker, buffer_start, buffer_end)
+            
+            # Check if we have the data structure (even if empty)
+            if divs is None:
+                # API failed completely
+                return 0.0, False
+            
+            # Empty DataFrame means no dividends in period (valid state)
+            # This is NOT a fallback - stock/ETF just didn't pay dividends
+            if divs.empty:
+                return 0.0, True
+            
+            # Filter to (entry, exit]
+            divs_in_period = divs[(divs["date"] > entry_date) & (divs["date"] <= exit_date)]
+            
+            if divs_in_period.empty:
+                # No dividends in this specific period (valid state)
+                return 0.0, True
+            
+            total_dividends = divs_in_period["dividend"].sum()
+            div_yield = total_dividends / entry_price
+            
+            return float(div_yield), True
+            
+        except Exception as e:
+            # API call or parsing failed
+            logger.warning(f"Benchmark dividend fallback for {ticker}: {e}")
+            return 0.0, False
+    
     def generate(
         self,
         ticker: str,
@@ -507,9 +573,20 @@ class LabelGenerator:
                         stock_div_yield = self._calculate_dividend_yield(
                             ticker, as_of_date, exit_date, entry_price
                         )
-                        bench_div_yield = self._calculate_dividend_yield(
+                        bench_div_yield, bench_div_available = self._calculate_dividend_yield_with_fallback(
                             self.benchmark, as_of_date, exit_date, bench_entry
                         )
+                        
+                        # Track fallback if benchmark dividend unavailable
+                        if not bench_div_available:
+                            self._fallback_count += 1
+                            self._fallback_details.append({
+                                "ticker": ticker,
+                                "benchmark": self.benchmark,
+                                "as_of_date": as_of_date,
+                                "horizon": horizon,
+                                "reason": "benchmark_dividend_unavailable"
+                            })
                     
                     # Total returns = price return + dividend yield
                     stock_total_return = stock_price_return + stock_div_yield
@@ -650,6 +727,26 @@ class LabelGenerator:
         logger.info(f"  Stock dividend yield: {100*mean_stock_div:.2f}%")
         logger.info(f"  Stock total return:   {100*mean_stock_total:.2f}%")
         logger.info(f"  Dividend contribution: {100*mean_stock_div/mean_stock_total if mean_stock_total != 0 else 0:.1f}% of total return")
+        
+        # Benchmark dividend fallback monitoring (HARD POLICY)
+        logger.info(f"\nBenchmark Dividend Fallback Monitoring:")
+        fallback_rate = 100 * self._fallback_count / total if total > 0 else 0
+        logger.info(f"  Fallback occurrences: {self._fallback_count}/{total} ({fallback_rate:.2f}%)")
+        
+        # HARD THRESHOLD: <1% fallback rate
+        FALLBACK_THRESHOLD = 1.0  # percent
+        if fallback_rate >= FALLBACK_THRESHOLD:
+            logger.error(f"  ❌ FALLBACK RATE EXCEEDS THRESHOLD!")
+            logger.error(f"     Threshold: <{FALLBACK_THRESHOLD}%, Actual: {fallback_rate:.2f}%")
+            logger.error(f"     ACTION REQUIRED: Re-run with alternative benchmark dividend source")
+            logger.error(f"     (Regime-dependent bias risk from ETF distributions)")
+        else:
+            logger.info(f"  ✅ Fallback rate below threshold (<{FALLBACK_THRESHOLD}%)")
+        
+        if self._fallback_count > 0:
+            logger.info(f"  Sample fallback details (first 5):")
+            for detail in self._fallback_details[:5]:
+                logger.info(f"    - {detail['ticker']} on {detail['as_of_date']} H={detail['horizon']}d: {detail['reason']}")
         
         logger.info("=" * 60)
     
