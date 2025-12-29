@@ -14,7 +14,7 @@ Submodules:
 - event_features: Earnings, filings, calendars (5.4) ✅
 - regime_features: VIX, market trend, macro (5.5) ✅
 - missingness: "Known at time T" masks (5.6) ✅
-- hygiene: Standardization, correlation, VIF (5.7) - TODO
+- hygiene: Standardization, correlation, VIF (5.7) ✅
 - neutralization: Sector/beta/market neutral IC (5.8) - TODO
 - feature_store: DuckDB storage for features - TODO
 
@@ -85,6 +85,20 @@ from .missingness import (
     FEATURE_CATEGORIES,
 )
 
+from .hygiene import (
+    FeatureHygiene,
+    FeatureBlock,
+    ICStabilityResult,
+    VIFResult,
+    get_feature_hygiene,
+    winsorize_cross_sectional,
+    rank_transform,
+    zscore_transform,
+    CORRELATION_THRESHOLD,
+    VIF_THRESHOLD,
+    IC_SIGN_CONSISTENCY_THRESHOLD,
+)
+
 __all__ = [
     # Labels (5.1)
     "LabelGenerator",
@@ -126,5 +140,17 @@ __all__ = [
     "CoverageStats",
     "get_missingness_tracker",
     "FEATURE_CATEGORIES",
+    # Hygiene (5.7)
+    "FeatureHygiene",
+    "FeatureBlock",
+    "ICStabilityResult",
+    "VIFResult",
+    "get_feature_hygiene",
+    "winsorize_cross_sectional",
+    "rank_transform",
+    "zscore_transform",
+    "CORRELATION_THRESHOLD",
+    "VIF_THRESHOLD",
+    "IC_SIGN_CONSISTENCY_THRESHOLD",
 ]
 

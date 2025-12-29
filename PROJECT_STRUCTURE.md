@@ -81,11 +81,10 @@ AI_Stock_Forecast/
 │   │   ├── time_decay.py         # Sample weighting for training ✅
 │   │   ├── event_features.py     # 5.4 Earnings, filings, calendars ✅
 │   │   ├── regime_features.py    # 5.5 VIX, market trend, sector rotation ✅
-│   │   ├── missingness.py        # 5.6 Coverage tracking, availability masks ✅
-│   │   ├── regime_features.py    # 5.5 VIX, market trend, macro
-│   │   ├── missingness.py        # 5.6 "Known at time T" masks
-│   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF
-│   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC
+│   │   ├── regime_features.py    # 5.5 VIX, market trend, macro ✅
+│   │   ├── missingness.py        # 5.6 Coverage tracking, "known at time T" masks ✅
+│   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF, IC stability ✅
+│   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC (TODO)
 │   │   └── feature_store.py      # DuckDB storage for computed features
 │   │
 │   ├── models/                   # Sections 7-12: Models (TODO)
@@ -354,9 +353,10 @@ Items that are noted in code but require later sections to implement.
 - `src/features/regime_features.py` - VIX, market trend, sector rotation (5.5) ✅
 - `src/features/missingness.py` - Coverage tracking, availability masks (5.6) ✅
 
+**Files created (5.7):**
+- `src/features/hygiene.py` - Feature hygiene & redundancy control ✅
+
 **Files to create:**
-- `src/features/missingness.py` - "Known at time T" masks (5.6)
-- `src/features/hygiene.py` - Standardization, correlation, VIF (5.7)
 - `src/features/neutralization.py` - Sector/beta/market neutral IC (5.8)
 - `src/features/feature_store.py` - DuckDB storage for features
 
