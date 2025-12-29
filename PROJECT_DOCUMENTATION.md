@@ -571,6 +571,169 @@ CHAPTER 3 EXTENSIONS - TEST SUITE
 
 ---
 
+## Qlib Integration (Shadow Evaluator for Chapter 6+)
+
+**Integration Philosophy: "Optional Evaluator, Not Replacement"**
+
+[Qlib](https://github.com/microsoft/qlib) (Microsoft's AI-oriented quantitative investment platform) will be integrated starting Chapter 6 as a **shadow evaluator and benchmark harness**, NOT as a replacement for our core infrastructure.
+
+### What Qlib Will NOT Replace (Chapters 1-5 Remain Intact)
+
+❌ **DO NOT use Qlib for:**
+- Data ingestion / PIT store / DuckDB backend
+- Universe construction / survivorship-safe snapshots
+- Feature engineering / PIT discipline / stable IDs
+- Label generation / dividend handling / maturity rules
+- Security master / ticker change handling
+
+**Rationale:** We've built institutional-grade PIT discipline, survivorship handling, and feature engineering. Swapping this would be **high-risk / low-reward** and could lose the exact guarantees we've established.
+
+### Where Qlib Saves Time (Chapter 6 Onwards)
+
+✅ **DO use Qlib for:**
+
+**1. Chapter 6.3 Metrics + 6.5 Reporting (Biggest Win)**
+
+Qlib provides built-in standardized factor evaluation:
+- **IC Analysis:** Information Coefficient (Pearson & Spearman), monthly IC, IC by regime
+- **Quintile Analysis:** Group returns, top-bottom spread, long-short distribution
+- **Prediction Diagnostics:** Autocorrelation, prediction distribution, rank-label scatter
+- **Portfolio Metrics:** Cumulative return, drawdown, Sharpe/IR, turnover
+
+**Qlib Reports:** [Reference](https://qlib.readthedocs.io/en/latest/component/report.html)
+
+![Qlib IC Analysis](https://qlib.readthedocs.io/en/latest/_images/analysis_model_ic.png)
+![Qlib Cumulative Returns](https://qlib.readthedocs.io/en/latest/_images/analysis_position_cumulative_return.png)
+
+**Integration:**
+```python
+# Our system generates predictions
+predictions_df = our_model.predict(features_df)  # (date, ticker, pred)
+labels_df = our_label_generator.get_labels(...)  # (date, ticker, label)
+
+# Hand to Qlib for evaluation
+qlib_df = pd.merge(predictions_df, labels_df, on=["date", "ticker"])
+qlib_df["group"] = sector_map  # Optional: sector/liquidity buckets
+
+# Generate standardized reports
+from qlib.contrib.evaluate import backtest_daily
+reports = backtest_daily(prediction=qlib_df, ...)
+```
+
+**Benefit:** Instead of writing custom IC plot / quintile analysis / churn diagnostic code, leverage Qlib's mature reporting stack.
+
+**2. Chapter 6.4 Cost Realism (Second Opinion)**
+
+Qlib's backtest engine outputs:
+- Excess return **without cost**
+- Excess return **with cost** (configurable transaction costs)
+- Risk metrics: IR, max drawdown, turnover
+
+**Integration:**
+```python
+# Use Qlib's backtest as validation
+qlib_backtest = qlib.backtest.backtest(
+    strategy=top_k_strategy,
+    costs={"buy": 0.002, "sell": 0.002},  # 20 bps round-trip
+)
+```
+
+**Benefit:** Provides independent validation of "does alpha survive?" with standardized cost models.
+
+**3. Chapter 6.X Experiment Tracking**
+
+Qlib's `Recorder` system logs:
+- Model artifacts (weights, configs)
+- Evaluation metrics (IC, backtest returns)
+- Experiment metadata (walk-forward fold ID, hyperparameters)
+
+**Integration:**
+```python
+from qlib.workflow import R
+
+with R.start(experiment_name="walk_forward_fold_1"):
+    # Train model
+    model.fit(X_train, y_train)
+    # Log metrics
+    R.log_metrics({"ic": ic, "rankic": rankic, "quintile_spread": spread})
+    # Save artifacts
+    R.save_objects(**{"model.pkl": model})
+```
+
+**Benefit:** Clean experiment management across walk-forward folds, model variants (v1 vs v2 labels), and hyperparameter sweeps.
+
+**4. Chapter 7 Baseline Harness (Optional)**
+
+Qlib provides ready-made baselines:
+- LightGBM, XGBoost, CatBoost
+- Deep models: LSTM, GRU, Transformer, TFT, TabNet
+- Quant-specific: HIST, TRA, ALSTM, DDG-DA
+
+**Integration:**
+```python
+# Run LightGBM baseline with our features
+qlib.init(provider_uri="~/.qlib/qlib_data")
+qrun benchmarks/LightGBM/workflow_config_lightgbm.yaml
+```
+
+**Benefit:** Fast baseline IC comparisons without writing training loops. Our models must beat these.
+
+### Integration Pattern (Narrow & Safe)
+
+**Data Flow:**
+```
+┌─────────────────────────────────────┐
+│ Our System (Source of Truth)       │
+│ - Universe snapshots (stable_id)   │
+│ - Features (PIT-safe, 5.1-5.8)     │
+│ - Labels (v2 total return)         │
+│ - Predictions (our models)         │
+└─────────────────┬───────────────────┘
+                  │
+                  │ DataFrame: (date, ticker, pred, label, group)
+                  ↓
+┌─────────────────────────────────────┐
+│ Qlib (Evaluation & Reporting)      │
+│ - IC analysis (monthly, regime)    │
+│ - Quintile spread & hit rate       │
+│ - Backtest (cost-inclusive)        │
+│ - Experiment tracking (Recorder)   │
+└─────────────────────────────────────┘
+```
+
+**Key Principle:** Qlib receives **predictions + labels**, NOT raw data. This avoids forcing our PIT/survivorship logic into Qlib's data handlers.
+
+### Implementation Checklist (Chapter 6)
+
+- [ ] Install Qlib: `pip install pyqlib`
+- [ ] Create adapter: `our_predictions_to_qlib_format()`
+- [ ] Run first evaluation report with Qlib
+- [ ] Compare Qlib's IC with our manual IC calculation (sanity check)
+- [ ] Set up Recorder for walk-forward experiment tracking
+- [ ] Optional: Run LightGBM baseline via Qlib for comparison
+- [ ] Document fallback: If Qlib reporting breaks, we can still compute IC manually
+
+### What to Watch (Gotchas)
+
+⚠️ **Don't let Qlib own the data format:** If you try to plug DuckDB/PIT store into Qlib's `DataProvider`, you'll lose weeks. Keep it narrow: predictions + labels only.
+
+⚠️ **Version pinning:** Qlib is actively developed. Pin version once it works:
+```bash
+pip install pyqlib==0.9.7  # or whatever version works
+```
+
+⚠️ **Qlib's data expectations:** Qlib expects `(instrument, datetime)` multiindex. Our adapter must handle this.
+
+### References
+
+- **Qlib Documentation:** https://qlib.readthedocs.io/en/latest/
+- **GitHub:** https://github.com/microsoft/qlib
+- **Evaluation & Reporting:** https://qlib.readthedocs.io/en/latest/component/report.html
+- **Recorder (Experiment Tracking):** https://qlib.readthedocs.io/en/latest/component/recorder.html
+- **Backtest:** https://qlib.readthedocs.io/en/latest/component/strategy.html
+
+---
+
 ## What Needs To Be Done (Future Chapters)
 
 ---
@@ -1042,6 +1205,19 @@ results = neutralization_report(
 
 ### Chapter 6: Evaluation Realism
 
+**Qlib Integration (Shadow Evaluator):**
+- [x] **Qlib as optional evaluator** (NOT replacing Chapters 1-5 infrastructure)
+- Our system = source of truth (universe, PIT, features, labels)
+- Qlib receives: predictions + realized labels + optional groups (sector, liquidity)
+- Qlib generates: standardized factor evaluation + backtest-style reports
+- **Benefits:**
+  - 6.3 Metrics: IC/RankIC, monthly IC, quintile analysis, autocorrelation (built-in plots)
+  - 6.5 Reporting: Cumulative returns, group analysis, long-short distribution
+  - 6.4 Cost realism: Backtest analytics as second opinion ("does alpha survive?")
+  - Experiment tracking: Recorder system for walk-forward folds
+- **Reference:** [Qlib Documentation](https://qlib.readthedocs.io/en/latest/), [GitHub](https://github.com/microsoft/qlib)
+
+**Walk-Forward Tasks:**
 - [ ] Re-run walk-forward once universe is survivorship-safe
 - [ ] Confirm performance doesn't depend on survivorship bias
 - [ ] Add diagnostics for signals that break under constraints (borrow/short crowding)
@@ -1050,6 +1226,8 @@ results = neutralization_report(
 - [ ] **Apply time-decay weighting** during training (`src/features/time_decay.py`)
 - [ ] Use horizon-specific half-lives: 2.5y (20d), 3.5y (60d), 4.5y (90d)
 - [ ] Per-date normalization for cross-sectional ranking loss
+- [ ] Use Qlib for standardized evaluation reports (IC, quintile spread, churn)
+- [ ] Use Qlib's Recorder for experiment tracking across folds
 
 ### Chapter 11/12: Fusion + Regime-Aware Ensembling
 

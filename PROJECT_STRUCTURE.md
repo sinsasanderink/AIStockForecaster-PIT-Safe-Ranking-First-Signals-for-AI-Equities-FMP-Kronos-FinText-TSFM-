@@ -27,7 +27,8 @@ AI_Stock_Forecast/
 │   ├── ml.txt                   # + Tabular ML (lightgbm, catboost, sklearn)
 │   ├── gpu.txt                  # + Deep learning (torch, transformers)
 │   ├── dev.txt                  # + Testing/linting (pytest, ruff, black)
-│   └── research.txt             # + Notebooks/viz (jupyter, plotly)
+│   ├── research.txt             # + Notebooks/viz (jupyter, plotly)
+│   └── qlib.txt                 # + Qlib (optional, for Chapter 6+ evaluation)
 │
 ├── src/                          # Main source code
 │   ├── __init__.py
@@ -427,3 +428,105 @@ Items that are noted in code but require later sections to implement.
 - Pipelines accept interface types (`PITStore`, `TradingCalendar`, `Config`)
 - Default to stubs for testing; inject real implementations in production
 - This makes pipelines deterministic and testable without network access
+
+---
+
+## Qlib Integration (Chapter 6+)
+
+**Purpose:** Microsoft's [Qlib](https://github.com/microsoft/qlib) serves as an **optional shadow evaluator** for standardized reporting and experiment tracking, starting in Chapter 6.
+
+**Integration Philosophy:**
+- **NOT a replacement:** Chapters 1-5 infrastructure (PIT, survivorship, features, labels) remain untouched
+- **Narrow integration:** Qlib receives predictions + labels, NOT raw data/features
+- **Shadow evaluator:** Qlib generates standardized factor evaluation reports for validation
+
+### What Qlib Provides
+
+**1. Chapter 6 Evaluation & Reporting:**
+- IC/RankIC analysis with built-in plots (monthly IC, regime IC, autocorrelation)
+- Quintile analysis (group returns, top-bottom spread, long-short distribution)
+- Backtest engine with configurable transaction costs
+- Portfolio metrics (cumulative return, Sharpe/IR, max drawdown, turnover)
+
+**2. Experiment Tracking:**
+- Recorder system for managing walk-forward folds, model variants, hyperparameter sweeps
+- Artifact storage (models, configs, predictions)
+- Metric logging (IC, backtest returns, cost-adjusted performance)
+
+**3. Baseline Harness (Chapter 7):**
+- Ready-made implementations: LightGBM, XGBoost, CatBoost, LSTM, Transformer, etc.
+- Standardized evaluation across baselines
+
+### Data Flow
+
+```
+┌──────────────────────────────────────┐
+│ Our System (Source of Truth)        │
+│ - Universe (stable_id, survivorship)│
+│ - Features (PIT-safe, 5.1-5.8)      │
+│ - Labels (v2 total return)          │
+│ - Predictions (our models)          │
+└──────────────┬───────────────────────┘
+               │
+               │ DataFrame: (date, ticker, pred, label, group)
+               ↓
+┌──────────────────────────────────────┐
+│ Qlib (Evaluation & Reporting)       │
+│ - IC analysis (monthly, regime)     │
+│ - Quintile spread & hit rate        │
+│ - Backtest (cost-inclusive)         │
+│ - Experiment tracking (Recorder)    │
+└──────────────────────────────────────┘
+```
+
+### Installation
+
+```bash
+pip install pyqlib  # Add to requirements/research.txt
+```
+
+**Version pinning recommended:**
+```bash
+pip install pyqlib==0.9.7  # or latest stable
+```
+
+### Adapter Pattern
+
+```python
+# src/evaluation/qlib_adapter.py (Chapter 6)
+def our_predictions_to_qlib_format(predictions_df, labels_df):
+    """
+    Convert our predictions to Qlib's expected format.
+    
+    Qlib expects:
+    - MultiIndex: (instrument, datetime)
+    - Columns: score (prediction), label (realized return)
+    """
+    qlib_df = pd.merge(predictions_df, labels_df, on=["date", "ticker"])
+    qlib_df = qlib_df.rename(columns={"ticker": "instrument", "pred": "score"})
+    qlib_df = qlib_df.set_index(["instrument", "date"])
+    return qlib_df
+
+# Usage in Chapter 6
+from qlib.contrib.evaluate import backtest_daily
+qlib_df = our_predictions_to_qlib_format(predictions, labels)
+reports = backtest_daily(prediction=qlib_df, ...)
+```
+
+### What NOT to Do
+
+❌ **Don't plug DuckDB into Qlib's DataProvider:** This is where migrations get expensive and you risk losing PIT guarantees.
+
+❌ **Don't force our features into Qlib's handlers:** Our feature engineering (PIT discipline, missingness, neutralization) is institutional-grade. Keep it.
+
+❌ **Don't let Qlib own the universe:** Our survivorship-safe universe construction with stable IDs is a core differentiator.
+
+### References
+
+- **Qlib GitHub:** https://github.com/microsoft/qlib
+- **Qlib Documentation:** https://qlib.readthedocs.io/en/latest/
+- **Evaluation & Reporting:** https://qlib.readthedocs.io/en/latest/component/report.html
+- **Recorder (Experiment Tracking):** https://qlib.readthedocs.io/en/latest/component/recorder.html
+- **Backtest Engine:** https://qlib.readthedocs.io/en/latest/component/strategy.html
+
+---
