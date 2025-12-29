@@ -73,12 +73,13 @@ AI_Stock_Forecast/
 │   │   ├── __init__.py
 │   │   └── ai_stocks.py          # 100 AI stocks x 10 categories (tagging only)
 │   │
-│   ├── features/                 # Section 5: Feature Engineering (TODO)
+│   ├── features/                 # Section 5: Feature Engineering (IN PROGRESS)
 │   │   ├── __init__.py
-│   │   ├── labels.py             # 5.1 Forward excess returns
-│   │   ├── price_features.py     # 5.2 Momentum, volatility, drawdown
-│   │   ├── fundamental_features.py # 5.3 Relative ratios vs sector
-│   │   ├── event_features.py     # 5.4 Earnings, filings, calendars
+│   │   ├── labels.py             # 5.1 Forward excess returns ✅
+│   │   ├── price_features.py     # 5.2 Momentum, volatility, drawdown ✅
+│   │   ├── fundamental_features.py # 5.3 Relative ratios vs sector ✅
+│   │   ├── time_decay.py         # Sample weighting for training ✅
+│   │   ├── event_features.py     # 5.4 Earnings, filings, calendars ✅
 │   │   ├── regime_features.py    # 5.5 VIX, market trend, macro
 │   │   ├── missingness.py        # 5.6 "Known at time T" masks
 │   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF
@@ -341,12 +342,15 @@ Items that are noted in code but require later sections to implement.
 - `src/data/security_master.py`: Stable IDs, ticker changes
 - `tests/test_chapter4_universe.py`: Comprehensive tests (7/7 passed)
 
-### Section 5: Feature Engineering 🔲 NEXT
+### Section 5: Feature Engineering 🟡 IN PROGRESS
+**Files created:**
+- `src/features/labels.py` - Forward excess returns (5.1) ✅
+- `src/features/price_features.py` - Momentum, volatility, drawdown (5.2) ✅
+- `src/features/fundamental_features.py` - Relative ratios vs sector (5.3) ✅
+- `src/features/time_decay.py` - Sample weighting for training ✅
+- `src/features/event_features.py` - Earnings, filings, calendars (5.4) ✅
+
 **Files to create:**
-- `src/features/labels.py` - Forward excess returns (5.1)
-- `src/features/price_features.py` - Momentum, volatility, drawdown (5.2)
-- `src/features/fundamental_features.py` - Relative ratios vs sector (5.3)
-- `src/features/event_features.py` - Earnings, filings, calendars (5.4)
 - `src/features/regime_features.py` - VIX, market trend, macro (5.5)
 - `src/features/missingness.py` - "Known at time T" masks (5.6)
 - `src/features/hygiene.py` - Standardization, correlation, VIF (5.7)

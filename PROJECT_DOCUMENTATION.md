@@ -32,7 +32,7 @@ Building a **signal-only, PIT-safe, ranking-first** AI stock forecasting system 
 | 2. CLI & Pipelines | ✅ Complete | Commands: download-data, build-universe, score, make-report |
 | 3. Data Infrastructure | ✅ Complete | FMP, Alpha Vantage, SEC EDGAR, Event Store |
 | 4. Survivorship-Safe Universe | ✅ Complete | Polygon symbol master + UniverseBuilder with stable_id |
-| 5. Feature Engineering | 🟡 In Progress | 5.1 Labels ✅, 5.2 Price ✅, 5.3 Fundamentals ✅ |
+| 5. Feature Engineering | 🟡 In Progress | 5.1 Labels ✅, 5.2 Price ✅, 5.3 Fundamentals ✅, 5.4 Events ✅ |
 | 6. Evaluation Framework | 🔲 Pending | Walk-forward, purging/embargo, ranking metrics |
 | 7-13. Models & Production | 🔲 Pending | Kronos, FinText, baselines, deployment |
 
@@ -753,12 +753,82 @@ where:
 **Files:** `src/features/fundamental_features.py`
 **Tests:** 9/9 passed in `tests/test_features.py`
 
-**5.4 Event & Calendar Features**
-- [ ] Days to next earnings
-- [ ] Days since last earnings
-- [ ] Post-earnings drift window indicator
-- [ ] Surprise magnitude (last N quarters)
-- [ ] Filing recency (days since last 10-Q/10-K)
+---
+
+### Time-Decay Sample Weighting (Training Policy) ✅ COMPLETE
+
+**Why Time Decay Matters for AI Stocks:**
+- AI stocks' business models have changed dramatically over time
+- The "AI regime" (2020+) is fundamentally different from earlier eras
+- Market microstructure evolves (HFT, retail flow, etc.)
+- Recent observations are more relevant for forward predictions
+- Many AI stocks didn't exist 15+ years ago - that's OK, don't fill missing years
+
+**Policy:**
+- Use exponentially-decayed sample weights by date during training
+- Half-life determines how quickly old data becomes less relevant
+- Per-date normalization ensures each date contributes equally
+
+**Recommended Half-Lives:**
+| Horizon | Half-Life | Rationale |
+|---------|-----------|-----------|
+| 20d     | 2.5 years | Short-term patterns change faster |
+| 60d     | 3.5 years | Medium-term patterns |
+| 90d     | 4.5 years | Longer-term trends more stable |
+
+**Formula:**
+```
+w(t) = 2^(-Δ(t) / half_life)
+where Δ(t) = days between t and training_end_date
+
+Example (3-year half-life):
+- 3 years old → weight = 0.50
+- 6 years old → weight = 0.25
+- 9 years old → weight = 0.125
+```
+
+**Key Rules:**
+1. Use survivorship-safe universe as-of each date (from Chapter 4)
+2. Compute weights per row, not per stock (young stocks get fewer rows, higher weight)
+3. Normalize within each date for cross-sectional ranking
+
+**Where This Applies:**
+- Section 6: Evaluation framework (walk-forward training)
+- Section 11: Fusion model training
+- NOT during feature computation (features use fixed lookback windows)
+
+**Implementation:**
+- **File:** `src/features/time_decay.py`
+- **Functions:** `compute_time_decay_weights()`, `get_half_life_for_horizon()`
+- **Usage:** `model.fit(X, y, sample_weight=weights)`
+
+**Note on 30-Year Data:**
+- FMP Premium provides 30 years of data
+- Don't use a fixed "30-year window" for all stocks
+- Use what exists, let time-decay handle relevance
+- Effective sample will naturally concentrate in the last 10-15 years for AI stocks
+
+---
+
+**5.4 Event & Calendar Features ✅ COMPLETE**
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| `days_to_earnings` | Days until next expected earnings | ✅ |
+| `days_since_earnings` | Days since last earnings report | ✅ |
+| `in_pead_window` | Post-earnings drift window indicator (63 days) | ✅ |
+| `pead_window_day` | Which day of PEAD window (1-63) | ✅ |
+| `last_surprise_pct` | Most recent earnings surprise % | ✅ |
+| `avg_surprise_4q` | Rolling 4-quarter average surprise | ✅ |
+| `surprise_streak` | Consecutive beats (+) or misses (-) | ✅ |
+| `surprise_zscore` | Cross-sectional z-score of surprise | ✅ |
+| `earnings_vol` | Std dev of surprises (8Q) | ✅ |
+| `days_since_10k` | Days since last annual report | ✅ |
+| `days_since_10q` | Days since last quarterly report | ✅ |
+| `reports_bmo` | Typical BMO vs AMC timing | ✅ |
+
+**Files:** `src/features/event_features.py`
+**Tests:** 9/9 passed in `tests/test_event_features.py`
 
 **5.5 Regime & Macro Features**
 - [ ] VIX level and percentile
@@ -823,12 +893,17 @@ where:
 - [ ] Add diagnostics for signals that break under constraints (borrow/short crowding)
 - [ ] Purging & embargo (gap between train/test)
 - [ ] Ranking metrics (top-N hit rate, rank correlation)
+- [ ] **Apply time-decay weighting** during training (`src/features/time_decay.py`)
+- [ ] Use horizon-specific half-lives: 2.5y (20d), 3.5y (60d), 4.5y (90d)
+- [ ] Per-date normalization for cross-sectional ranking loss
 
 ### Chapter 11/12: Fusion + Regime-Aware Ensembling
 
 - [ ] Add expectations/options/positioning blocks into fusion
 - [ ] Add regime-aware weighting (earnings windows vs normal regimes)
 - [ ] Check redundancy (correlation with Kronos/FinText; keep only additive blocks)
+- [ ] **Apply time-decay weighting** during fusion training
+- [ ] Keep decay inside each regime the same way (weights by date, normalized by date)
 
 ### Chapter 13/14: Confidence + Monitoring
 
