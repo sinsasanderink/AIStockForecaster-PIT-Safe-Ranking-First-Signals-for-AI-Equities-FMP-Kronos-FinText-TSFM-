@@ -80,8 +80,7 @@ AI_Stock_Forecast/
 │   │   ├── fundamental_features.py # 5.3 Relative ratios vs sector ✅
 │   │   ├── time_decay.py         # Sample weighting for training ✅
 │   │   ├── event_features.py     # 5.4 Earnings, filings, calendars ✅
-│   │   ├── regime_features.py    # 5.5 VIX, market trend, sector rotation ✅
-│   │   ├── regime_features.py    # 5.5 VIX, market trend, macro ✅
+│   │   ├── regime_features.py    # 5.5 VIX, market trend, sector rotation, macro ✅
 │   │   ├── missingness.py        # 5.6 Coverage tracking, "known at time T" masks ✅
 │   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF, IC stability ✅
 │   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC ✅
