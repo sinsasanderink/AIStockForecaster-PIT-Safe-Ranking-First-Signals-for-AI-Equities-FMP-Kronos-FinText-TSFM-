@@ -84,7 +84,7 @@ AI_Stock_Forecast/
 │   │   ├── regime_features.py    # 5.5 VIX, market trend, macro ✅
 │   │   ├── missingness.py        # 5.6 Coverage tracking, "known at time T" masks ✅
 │   │   ├── hygiene.py            # 5.7 Standardization, correlation, VIF, IC stability ✅
-│   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC (TODO)
+│   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC ✅
 │   │   └── feature_store.py      # DuckDB storage for computed features
 │   │
 │   ├── models/                   # Sections 7-12: Models (TODO)
@@ -353,12 +353,12 @@ Items that are noted in code but require later sections to implement.
 - `src/features/regime_features.py` - VIX, market trend, sector rotation (5.5) ✅
 - `src/features/missingness.py` - Coverage tracking, availability masks (5.6) ✅
 
-**Files created (5.7):**
+**Files created (5.7-5.8):**
 - `src/features/hygiene.py` - Feature hygiene & redundancy control ✅
+- `src/features/neutralization.py` - Sector/beta/market neutral IC ✅
 
-**Files to create:**
-- `src/features/neutralization.py` - Sector/beta/market neutral IC (5.8)
-- `src/features/feature_store.py` - DuckDB storage for features
+**Files to create (future):**
+- `src/features/feature_store.py` - DuckDB storage for features (deferred to Chapter 6)
 
 **Key requirements:**
 - All features must use `observed_at <= asof` filtering

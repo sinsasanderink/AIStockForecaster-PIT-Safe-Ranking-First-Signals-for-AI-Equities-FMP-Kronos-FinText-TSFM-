@@ -15,7 +15,7 @@ Submodules:
 - regime_features: VIX, market trend, macro (5.5) ✅
 - missingness: "Known at time T" masks (5.6) ✅
 - hygiene: Standardization, correlation, VIF (5.7) ✅
-- neutralization: Sector/beta/market neutral IC (5.8) - TODO
+- neutralization: Sector/beta/market neutral IC (5.8) ✅
 - feature_store: DuckDB storage for features - TODO
 
 CRITICAL PIT RULES:
@@ -99,6 +99,18 @@ from .hygiene import (
     IC_SIGN_CONSISTENCY_THRESHOLD,
 )
 
+from .neutralization import (
+    NeutralizationResult,
+    neutralize_cross_section,
+    create_sector_dummies,
+    compute_ic,
+    compute_neutralized_ic,
+    neutralization_report,
+    format_neutralization_report,
+    get_neutralization_summary_df,
+    DEFAULT_IC_METHOD,
+)
+
 __all__ = [
     # Labels (5.1)
     "LabelGenerator",
@@ -152,5 +164,15 @@ __all__ = [
     "CORRELATION_THRESHOLD",
     "VIF_THRESHOLD",
     "IC_SIGN_CONSISTENCY_THRESHOLD",
+    # Neutralization (5.8)
+    "NeutralizationResult",
+    "neutralize_cross_section",
+    "create_sector_dummies",
+    "compute_ic",
+    "compute_neutralized_ic",
+    "neutralization_report",
+    "format_neutralization_report",
+    "get_neutralization_summary_df",
+    "DEFAULT_IC_METHOD",
 ]
 

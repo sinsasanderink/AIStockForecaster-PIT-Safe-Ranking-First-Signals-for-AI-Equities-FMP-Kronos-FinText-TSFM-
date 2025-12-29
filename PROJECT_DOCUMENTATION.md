@@ -32,8 +32,8 @@ Building a **signal-only, PIT-safe, ranking-first** AI stock forecasting system 
 | 2. CLI & Pipelines | ✅ Complete | Commands: download-data, build-universe, score, make-report |
 | 3. Data Infrastructure | ✅ Complete | FMP, Alpha Vantage, SEC EDGAR, Event Store |
 | 4. Survivorship-Safe Universe | ✅ Complete | Polygon symbol master + UniverseBuilder with stable_id |
-| 5. Feature Engineering | 🟡 In Progress | 5.1-5.4 ✅, 5.5 Regime ✅, 5.6 Missingness ✅ |
-| 6. Evaluation Framework | 🔲 Pending | Walk-forward, purging/embargo, ranking metrics |
+| 5. Feature Engineering | ✅ Complete | 5.1-5.8 all complete, Chapter 5 smoke test passed (8/8) |
+| 6. Evaluation Framework | 🔲 Next | Walk-forward, purging/embargo, ranking metrics |
 | 7-13. Models & Production | 🔲 Pending | Kronos, FinText, baselines, deployment |
 
 **Section 4 is COMPLETE.** Ready to proceed to Section 5 (Feature Engineering).
@@ -926,12 +926,54 @@ print(report)
 **Files:** `src/features/hygiene.py`
 **Tests:** 9/9 passed in `tests/test_hygiene.py`
 
-**5.8 Feature Neutralization (Evaluation-Only, Optional) (NEW)**
-- [ ] Sector-neutral IC computation
-- [ ] Beta-neutral IC computation
-- [ ] Market-neutral IC computation
+**5.8 Feature Neutralization ✅ COMPLETE**
 
-*Used for diagnostics to reveal where alpha comes from — not for training.*
+| Component | Status | Description |
+|-----------|--------|-------------|
+| Cross-sectional neutralization | ✅ | Remove exposures via OLS/Ridge |
+| Sector-neutral IC | ✅ | IC after removing sector effects |
+| Beta-neutral IC | ✅ | IC after removing market beta |
+| Sector+Beta neutral IC | ✅ | IC after removing both |
+| Delta (Δ) reporting | ✅ | neutral_IC - raw_IC for interpretation |
+
+**Purpose:** For diagnostics ONLY (not training). Reveals WHERE alpha comes from:
+- Large negative Δ_sector → feature was mostly sector rotation
+- Large negative Δ_beta → feature was mostly market exposure  
+- Small Δ → alpha is genuinely stock-specific
+
+**Design Choices:**
+- Neutralize FEATURE (not label) before computing IC
+- Cross-sectional per date (PIT-safe, sectors as-of date T)
+- Reuses beta_252d from price_features.py (consistent definition)
+- Market-neutral = beta-neutral (linear market exposure removed)
+
+**Usage:**
+```python
+from src.features.neutralization import compute_neutralized_ic, neutralization_report
+
+# Single feature
+result = compute_neutralized_ic(
+    features_df=features_df,
+    labels_df=labels_df,
+    feature_col="mom_1m",
+    sector_col="sector",
+    beta_col="beta_252d",
+)
+
+print(f"Raw IC: {result.raw_ic:.3f}")
+print(f"Sector-neutral IC: {result.sector_neutral_ic:.3f} (Δ={result.delta_sector:+.3f})")
+print(f"Beta-neutral IC: {result.beta_neutral_ic:.3f} (Δ={result.delta_beta:+.3f})")
+
+# Full report for multiple features
+results = neutralization_report(
+    features_df=features_df,
+    labels_df=labels_df,
+    feature_cols=["mom_1m", "mom_3m", "pe_vs_sector"],
+)
+```
+
+**Files:** `src/features/neutralization.py`
+**Tests:** 9/9 passed in `tests/test_neutralization.py`
 
 **Optional Paid-Tier Features:**
 - [ ] Expectations: Revisions momentum, estimate dispersion, guidance
