@@ -496,6 +496,166 @@ def test_summary():
 # Main
 # =============================================================================
 
+# =============================================================================
+# TEST 9: v1 vs v2 Labels (Dividend Impact)
+# =============================================================================
+
+def test_v1_vs_v2_labels():
+    """Test v1 (price only) vs v2 (total return with dividends) labels."""
+    print_test_header("9. v1 vs v2 Labels (Dividend Impact)")
+    
+    from src.features.labels import LabelGenerator
+    from unittest.mock import MagicMock
+    import pandas as pd
+    import pytz
+    
+    all_passed = True
+    
+    # Mock FMP client
+    mock_fmp = MagicMock()
+    
+    # Mock price data for a stock (MSFT)
+    mock_fmp.get_historical_prices.return_value = pd.DataFrame({
+        "date": [date(2024, 1, 1), date(2024, 1, 15), date(2024, 2, 1)],
+        "close": [100.0, 105.0, 110.0],  # 5% gain to H=15, then 10% total
+    })
+    
+    # Mock dividend data for MSFT (pays quarterly ~0.75)
+    mock_fmp.get_stock_dividend.return_value = pd.DataFrame({
+        "date": [date(2024, 1, 10)],  # Ex-date between entry and exit
+        "dividend": [0.75],
+    })
+    
+    # Mock trading calendar
+    mock_calendar = MagicMock()
+    mock_calendar.get_trading_days.return_value = [date(2024, 1, 1)]
+    mock_calendar.get_n_trading_days_forward.return_value = date(2024, 1, 15)  # H=15
+    mock_calendar.get_market_close.return_value = datetime(2024, 1, 15, 21, 0, tzinfo=pytz.UTC)
+    
+    # Test v1 (price only)
+    gen_v1 = LabelGenerator(
+        fmp_client=mock_fmp,
+        calendar=mock_calendar,
+        benchmark="MSFT",  # Self-benchmark for simplicity
+        label_version="v1",
+    )
+    
+    labels_v1 = gen_v1.generate(
+        ticker="MSFT",
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 1),
+        horizons=[15],
+    )
+    
+    if labels_v1:
+        v1_label = labels_v1[0]
+        # v1: price return only (105/100 - 1 = 0.05)
+        v1_excess = v1_label.excess_return
+        v1_div_yield = v1_label.stock_dividend_yield
+        
+        print_result(f"v1 excess return: {v1_excess:.4f} (price only)", abs(v1_excess - 0.0) < 0.01, f"Expected ~0.0 (self-benchmark), got {v1_excess:.4f}")
+        print_result(f"v1 dividend yield: {v1_div_yield:.4f}", v1_div_yield == 0.0, f"Expected 0.0 (v1 ignores divs), got {v1_div_yield:.4f}")
+        
+        all_passed = all_passed and abs(v1_excess - 0.0) < 0.01 and v1_div_yield == 0.0
+    else:
+        print_result("v1 label generated", False, "No labels generated")
+        all_passed = False
+    
+    # Test v2 (total return with dividends)
+    gen_v2 = LabelGenerator(
+        fmp_client=mock_fmp,
+        calendar=mock_calendar,
+        benchmark="MSFT",  # Self-benchmark
+        label_version="v2",
+    )
+    
+    labels_v2 = gen_v2.generate(
+        ticker="MSFT",
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 1),
+        horizons=[15],
+    )
+    
+    if labels_v2:
+        v2_label = labels_v2[0]
+        # v2: total return = price return + div yield
+        # div yield = 0.75 / 100 = 0.0075
+        # excess still ~0.0 because both stock and benchmark get the dividend
+        v2_excess = v2_label.excess_return
+        v2_div_yield = v2_label.stock_dividend_yield
+        
+        print_result(f"v2 dividend yield: {v2_div_yield:.4f}", abs(v2_div_yield - 0.0075) < 0.001, f"Expected ~0.0075 (0.75/100), got {v2_div_yield:.4f}")
+        print_result(f"v2 excess return: {v2_excess:.4f}", abs(v2_excess - 0.0) < 0.01, f"Expected ~0.0 (self-benchmark), got {v2_excess:.4f}")
+        
+        all_passed = all_passed and abs(v2_div_yield - 0.0075) < 0.001 and abs(v2_excess - 0.0) < 0.01
+    else:
+        print_result("v2 label generated", False, "No labels generated")
+        all_passed = False
+    
+    # Compare v1 vs v2
+    if labels_v1 and labels_v2:
+        v1_version = labels_v1[0].label_version
+        v2_version = labels_v2[0].label_version
+        
+        print_result(f"v1 label_version = '{v1_version}'", v1_version == "v1")
+        print_result(f"v2 label_version = '{v2_version}'", v2_version == "v2")
+        
+        all_passed = all_passed and v1_version == "v1" and v2_version == "v2"
+    
+    # Test with different benchmark (mock QQQ with no dividend)
+    mock_fmp_qqq = MagicMock()
+    mock_fmp_qqq.get_historical_prices.side_effect = lambda ticker, start, end: {
+        "MSFT": pd.DataFrame({
+            "date": [date(2024, 1, 1), date(2024, 1, 15)],
+            "close": [100.0, 105.0],
+        }),
+        "QQQ": pd.DataFrame({
+            "date": [date(2024, 1, 1), date(2024, 1, 15)],
+            "close": [400.0, 404.0],  # 1% gain (less than MSFT's 5%)
+        }),
+    }.get(ticker, pd.DataFrame())
+    
+    mock_fmp_qqq.get_stock_dividend.side_effect = lambda ticker: {
+        "MSFT": pd.DataFrame({
+            "date": [date(2024, 1, 10)],
+            "dividend": [0.75],
+        }),
+        "QQQ": pd.DataFrame(columns=["date", "dividend"]),  # No dividends
+    }.get(ticker, pd.DataFrame(columns=["date", "dividend"]))
+    
+    gen_v2_qqq = LabelGenerator(
+        fmp_client=mock_fmp_qqq,
+        calendar=mock_calendar,
+        benchmark="QQQ",
+        label_version="v2",
+    )
+    
+    labels_v2_qqq = gen_v2_qqq.generate(
+        ticker="MSFT",
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 1),
+        horizons=[15],
+    )
+    
+    if labels_v2_qqq:
+        label = labels_v2_qqq[0]
+        # MSFT total return: (105/100 - 1) + (0.75/100) = 0.05 + 0.0075 = 0.0575
+        # QQQ total return: (404/400 - 1) + 0 = 0.01
+        # Excess: 0.0575 - 0.01 = 0.0475
+        expected_excess = 0.0475
+        actual_excess = label.excess_return
+        
+        print_result(f"v2 excess (MSFT vs QQQ): {actual_excess:.4f}", abs(actual_excess - expected_excess) < 0.001, f"Expected ~{expected_excess:.4f}, got {actual_excess:.4f}")
+        print_result("v2 includes dividends in ranking", abs(actual_excess - expected_excess) < 0.001, "Dividend-adjusted excess return")
+        
+        all_passed = all_passed and abs(actual_excess - expected_excess) < 0.001
+    else:
+        print_result("v2 label (MSFT vs QQQ) generated", False, "No labels generated")
+        all_passed = False
+    
+    return all_passed
+
+
 def run_all_tests():
     """Run all label tests."""
     print("\n" + "="*60)
@@ -518,6 +678,7 @@ def run_all_tests():
         ("6. Generator (Integration)", test_label_generator_integration),
         ("7. PIT Safety", test_pit_safety),
         ("8. Summary", test_summary),
+        ("9. v1 vs v2 (Dividends)", test_v1_vs_v2_labels),
     ]
     
     for name, test_func in tests:
