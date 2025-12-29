@@ -32,11 +32,17 @@ Building a **signal-only, PIT-safe, ranking-first** AI stock forecasting system 
 | 2. CLI & Pipelines | ✅ Complete | Commands: download-data, build-universe, score, make-report |
 | 3. Data Infrastructure | ✅ Complete | FMP, Alpha Vantage, SEC EDGAR, Event Store |
 | 4. Survivorship-Safe Universe | ✅ Complete | Polygon symbol master + UniverseBuilder with stable_id |
-| 5. Feature Engineering | ✅ Complete | 5.1-5.8 all complete, Chapter 5 smoke test passed (8/8) |
-| 6. Evaluation Framework | 🔲 Next | Walk-forward, purging/embargo, ranking metrics |
+| 5. Feature Engineering | ✅ **COMPLETE (v2)** | **5.1-5.8 + v2 labels (dividends) + PIT scanner enforced. 84/84 tests passed.** |
+| 6. Evaluation Framework | 🔲 **NEXT** | Walk-forward, purging/embargo, ranking metrics |
 | 7-13. Models & Production | 🔲 Pending | Kronos, FinText, baselines, deployment |
 
-**Section 4 is COMPLETE.** Ready to proceed to Section 5 (Feature Engineering).
+**Chapter 5 is COMPLETE (v2).** Ready to proceed to Chapter 6 (Evaluation Framework).
+
+**Key Completions:**
+- ✅ v2 Labels: Total return with dividends (DEFAULT), v1 available for comparison
+- ✅ PIT Scanner: Automated, enforced in CI, 0 CRITICAL violations
+- ✅ All feature modules: 5.1-5.8 complete and tested
+- ✅ 84/84 tests passed (was 81/81, +3 for PIT scanner, dividend tests, smoke test update)
 
 ### Section 5 Readiness Assessment
 
@@ -674,49 +680,74 @@ else:
 
 #### Chapter 5 Detailed TODO
 
-**5.1 Targets (Labels) — DEFINITION LOCKED**
+**5.1 Targets (Labels) — DEFINITION LOCKED ✅ COMPLETE (v2)**
 
-**Return Definition (v1):**
-- **Split-adjusted close price return** (close-to-close)
-- Dividends NOT included in v1 (documented limitation, TODO for v2)
-- Source: FMP `/stable/historical-price-eod/full` (already split-adjusted)
+**Return Definition (v2 - DEFAULT):**
+- **Total return (price + dividends)** for BOTH stock and benchmark
+- Split-adjusted close price + dividend yield
+- Source: FMP `/stable/historical-price-eod/full` (prices) + `/historical-price-eod/stock_dividend` (dividends)
 
-**Label Formula:**
+**Label Formula (v2):**
 ```
-y_i,T(H) = (P_i,T+H / P_i,T - 1) - (P_b,T+H / P_b,T - 1)
+y_i,T(H) = TR_i,T(H) - TR_b,T(H)
 
 where:
+  TR_i,T(H) = (P_i,T+H / P_i,T - 1) + DIV_i,T(H)
+  TR_b,T(H) = (P_b,T+H / P_b,T - 1) + DIV_b,T(H)
+  
+  DIV_i,T(H) = sum(dividends with ex-date in (T, T+H]) / P_i,T
+  
   P_i,T    = stock i split-adjusted close on date T
   P_i,T+H  = stock i split-adjusted close on date T+H trading days
-  P_b,T    = benchmark (QQQ) close on date T
   H        = horizon in TRADING DAYS (20, 60, 90)
 ```
+
+**Why v2 Matters:**
+- Ranking fairness: mature dividend payers (MSFT ~0.8% yield) vs growth stocks
+- For 90d horizon: ~0.2% dividend impact affects relative ranking
+- Avoids systematic bias in performance attribution
+- Consistency: total return for BOTH stock AND benchmark (no distortion)
+
+**Legacy v1 (price only):**
+- Available via `label_version='v1'` for comparison/debugging
+- Formula: `y = (P_T+H / P_T - 1) - (P_b,T+H / P_b,T - 1)` (no dividends)
+- NOT recommended for production use
 
 **Label Alignment (matches cutoff policy):**
 - Entry: price(T close) — 4:00pm ET cutoff
 - Exit: price(T+H close) — H trading days forward
+- Dividends: ex-dates in (T, T+H] (exclusive of entry, inclusive of exit)
 - Benchmark: same dates as stock
 - Calendar: Use `TradingCalendarImpl` for trading day arithmetic
 
 **Label Availability Rule (PIT-safe):**
-- Labels are future-looking, so NO `observed_at` in traditional sense
 - Labels mature at T+H close
+- Dividends use ex-date (conservative - avoids forward-looking bias)
 - During training/eval: filter by `asof >= T+H close`
 - Labels table supports walk-forward + purging/embargo from day 1
+
+**Benchmark Handling:**
+- If benchmark dividends/distributions available: use them (QQQ ETF distributions)
+- If not: documented as "stock total return vs benchmark price return"
+- Graceful fallback with logging
 
 **Storage:**
 - Same DuckDB pattern as features
 - Keys: `stable_id`, `ticker`, `date`, `horizon`
-- Values: `excess_return`, `stock_return`, `benchmark_return`
-- Metadata: `label_matured_at`, `benchmark_ticker`
+- Values: `excess_return`, `stock_return`, `benchmark_return`, `stock_dividend_yield`, `benchmark_dividend_yield`
+- Metadata: `label_matured_at`, `benchmark_ticker`, `label_version`
 
 **Implementation Tasks:**
-- [x] Lock return definition (split-adjusted close, no dividends v1)
+- [x] Lock return definition (v2: total return with dividends, DEFAULT)
 - [x] Implement forward excess return calculation vs benchmark
+- [x] Add dividend fetching and caching for both stock and benchmark
 - [x] Create label generator for 20/60/90 trading day horizons
-- [x] Store labels in DuckDB with maturity timestamps
-- [x] Add tests for label correctness and PIT safety (8/8 tests pass)
+- [x] Store labels in DuckDB with maturity timestamps and version flag
+- [x] Add tests for label correctness and PIT safety (9/9 tests pass, including v1 vs v2)
+- [x] Backward compatibility: v1 available via flag
 
+**Files:** `src/features/labels.py`
+**Tests:** 9/9 passed in `tests/test_labels.py` (including v1 vs v2 comparison)
 **Note:** FMP Premium available - QQQ and 30 years of data accessible.
 
 **5.2 Price & Volume Features ✅ COMPLETE**
