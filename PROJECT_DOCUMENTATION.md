@@ -32,7 +32,7 @@ Building a **signal-only, PIT-safe, ranking-first** AI stock forecasting system 
 | 2. CLI & Pipelines | ✅ Complete | Commands: download-data, build-universe, score, make-report |
 | 3. Data Infrastructure | ✅ Complete | FMP, Alpha Vantage, SEC EDGAR, Event Store |
 | 4. Survivorship-Safe Universe | ✅ Complete | Polygon symbol master + UniverseBuilder with stable_id |
-| 5. Feature Engineering | 🔲 Next | Price/volume, fundamentals, events, regime, **sentiment** |
+| 5. Feature Engineering | 🟡 In Progress | 5.1 Labels ✅, 5.2 Price ✅, 5.3 Fundamentals ✅ |
 | 6. Evaluation Framework | 🔲 Pending | Walk-forward, purging/embargo, ranking metrics |
 | 7-13. Models & Production | 🔲 Pending | Kronos, FinText, baselines, deployment |
 
@@ -666,7 +666,7 @@ else:
 | Caching | All clients | `data/cache/*` directories |
 
 #### API Keys Available ✅
-- `FMP_KEYS` - Prices, fundamentals, profiles (free tier: 250/day)
+- `FMP_KEYS` - **PREMIUM** - 30 years data, QQQ, all endpoints
 - `POLYGON_KEYS` - Symbol master, universe (free tier: 5/min)
 - `ALPHAVANTAGE_KEYS` - Earnings calendar (free tier: 25/day)
 
@@ -717,22 +717,41 @@ where:
 - [x] Store labels in DuckDB with maturity timestamps
 - [x] Add tests for label correctness and PIT safety (8/8 tests pass)
 
-**Note:** QQQ (ETF) may require FMP paid tier. Consider yfinance for benchmark data.
+**Note:** FMP Premium available - QQQ and 30 years of data accessible.
 
-**5.2 Price & Volume Features**
-- [ ] Momentum features (1m, 3m, 6m, 12m returns)
-- [ ] Volatility (realized vol, vol-of-vol)
-- [ ] Drawdown (max drawdown, current vs high)
-- [ ] Relative strength vs universe median
-- [ ] Beta vs benchmark (rolling window)
-- [ ] ADV and volatility-adjusted ADV
+**5.2 Price & Volume Features ✅ COMPLETE**
 
-**5.3 Fundamental Features (Relative, Normalized)**
-- [ ] P/E vs own 3-year history (z-score)
-- [ ] P/S vs sector median
-- [ ] Margins vs sector peers
-- [ ] Revenue/earnings growth vs sector
-- [ ] All ratios rank-transformed cross-sectionally
+| Feature | Description | Status |
+|---------|-------------|--------|
+| `mom_1m`, `mom_3m`, `mom_6m`, `mom_12m` | Returns over 21/63/126/252 trading days | ✅ |
+| `vol_20d`, `vol_60d` | Annualized volatility | ✅ |
+| `vol_of_vol` | Volatility of rolling volatility | ✅ |
+| `max_drawdown_60d` | Maximum drawdown over 60 days | ✅ |
+| `dist_from_high_60d` | Distance from 60-day high | ✅ |
+| `rel_strength_1m`, `rel_strength_3m` | Z-score vs universe | ✅ |
+| `beta_252d` | Beta vs benchmark (QQQ) | ✅ |
+| `adv_20d`, `adv_60d` | Average daily dollar volume | ✅ |
+| `vol_adj_adv` | ADV / volatility | ✅ |
+
+**Files:** `src/features/price_features.py`
+**Tests:** 9/9 passed in `tests/test_features.py`
+
+**5.3 Fundamental Features (Relative, Normalized) ✅ COMPLETE**
+
+| Feature | Description | Status |
+|---------|-------------|--------|
+| `pe_zscore_3y` | P/E vs own 3-year history | ✅ |
+| `ps_zscore_3y` | P/S vs own 3-year history | ✅ |
+| `pe_vs_sector` | P/E relative to sector median | ✅ |
+| `ps_vs_sector` | P/S relative to sector median | ✅ |
+| `gross_margin_vs_sector` | Gross margin vs sector | ✅ |
+| `operating_margin_vs_sector` | Operating margin vs sector | ✅ |
+| `revenue_growth_vs_sector` | Revenue growth vs sector | ✅ |
+| `roe_zscore`, `roa_zscore` | Quality metrics z-scored | ✅ |
+
+**Key Design:** Raw ratios avoided - all features are RELATIVE
+**Files:** `src/features/fundamental_features.py`
+**Tests:** 9/9 passed in `tests/test_features.py`
 
 **5.4 Event & Calendar Features**
 - [ ] Days to next earnings
