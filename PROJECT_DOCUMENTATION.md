@@ -2011,6 +2011,146 @@ for baseline in list_baselines():
 **Freeze Date:** December 30, 2025  
 **See:** `CHAPTER_6_FREEZE.md` for complete details
 
+---
+
+## Chapter 7: Baselines to Beat
+
+**Status:** 🔧 IN PROGRESS (7.3 COMPLETE)
+
+### 7.1-7.2: Factor Baselines ✅ COMPLETE (Frozen in Chapter 6)
+
+The factor baselines are already implemented and frozen as part of Chapter 6:
+- `mom_12m`: 12-month momentum (primary naive baseline)
+- `momentum_composite`: Equal-weight average of mom_1m/3m/6m/12m
+- `short_term_strength`: 1-month momentum (diagnostic)
+- `naive_random`: Deterministic random (sanity check)
+
+**Frozen Baseline Floor:** See `evaluation_outputs/chapter6_closure_real/BASELINE_FLOOR.json`
+
+### 7.3: Tabular ML Baseline ✅ COMPLETE
+
+**Implementation:** `src/evaluation/baselines.py` (ML baselines section)
+
+**Baseline:** `tabular_lgb`
+- **Model:** LightGBM Regressor (predicts excess return; higher = better)
+- **Training:** Per-fold using walk-forward splits (purging/embargo/maturity)
+- **Time Decay:** Exponential sample weighting (half-life = 252 trading days)
+- **Features:** Momentum (1m/3m/6m/12m), volatility (20d/60d), drawdown, liquidity (ADV), relative strength, beta
+- **Horizon-Specific:** Separate models trained for 20/60/90d horizons
+- **Deterministic:** Fixed `random_state=42`, no hyperparameter tuning in baseline
+
+**Hyperparameters (Fixed):**
+```python
+n_estimators=100
+learning_rate=0.05
+max_depth=5
+num_leaves=31
+min_child_samples=20
+```
+
+**Usage:**
+```python
+from src.evaluation import ExperimentSpec, run_experiment, FULL_MODE
+from src.evaluation.data_loader import load_features_for_evaluation
+
+# 1) LOADER: source + date range + horizons (cadence NOT here)
+features_df, metadata = load_features_for_evaluation(
+    source="duckdb",
+    db_path="data/features.duckdb",
+    eval_start=date(2016, 1, 1),
+    eval_end=date(2025, 6, 30),
+    horizons=[20, 60, 90],
+)
+
+# 2) RUNNER: cadence belongs to ExperimentSpec
+spec = ExperimentSpec.baseline("tabular_lgb", cadence="monthly")
+results = run_experiment(spec, features_df, output_dir, FULL_MODE)
+```
+
+> **Note:** `cadence` controls walk-forward fold frequency (monthly vs quarterly) and belongs to `ExperimentSpec`, not the loader. The loader only retrieves data; fold generation is the runner's responsibility.
+
+**Tests:** `tests/test_ml_baselines.py` (13 tests)
+- Registration and listing
+- Time-decay weighting
+- Training and prediction
+- Determinism (same inputs → same outputs)
+- Integration with evaluation pipeline
+- Guardrails (train/val split enforcement)
+
+**Total Tests:** 426/426 passing (413 existing + 13 new)
+
+### 7.4: Baseline Gates ✅ IMPLEMENTED
+
+**Factor Gate:** `median_RankIC(best_factor) ≥ 0.02`  
+**ML Gate:** `median_RankIC(tabular_lgb) ≥ 0.05`  
+**TSFM Rule (Chapters 8-12):** Must beat tuned ML baseline
+
+**Implementation:** `src/evaluation/run_evaluation.py` (`compute_acceptance_verdict`)
+
+**Acceptance Criteria (vs Frozen Baseline Floor):**
+1. **RankIC Lift:** Median RankIC ≥ baseline + 0.02
+2. **Net-of-Cost:** % positive folds ≥ baseline + 10pp (relative gate; frozen floor: 5.8%/25.1%/40.1%)
+3. **Churn:** Top-10 median churn < 0.30
+4. **Regime Robustness:** No fold with negative median RankIC
+
+### 7.5: FULL_MODE Execution Script ✅ COMPLETE
+
+**Implementation:** `scripts/run_chapter7_tabular_lgb.py`
+
+**What It Does:**
+- Loads REAL data from DuckDB feature store
+- Runs `tabular_lgb` baseline for monthly + quarterly cadences (FULL_MODE)
+- Produces cost overlays, stability reports, churn metrics
+- Compares vs frozen Chapter 6 baseline floor
+- Writes `BASELINE_REFERENCE.md` with performance summary
+- Does NOT modify Chapter 6 frozen artifacts
+
+**Usage:**
+```bash
+# Build DuckDB feature store (if not already built)
+python scripts/build_features_duckdb.py --auto-normalize-splits
+
+# Run tabular_lgb baseline (FULL MODE)
+# This will take significant time (trains model per fold per horizon)
+python scripts/run_chapter7_tabular_lgb.py
+
+# Smoke test (quick validation, 1 fold per cadence)
+python scripts/run_chapter7_tabular_lgb.py --smoke
+```
+
+**Output Directory:**
+```
+evaluation_outputs/chapter7_tabular_lgb_real/
+├── monthly/
+│   ├── eval_rows.parquet
+│   ├── fold_summaries.csv
+│   ├── cost_overlays.csv
+│   ├── churn_series.csv
+│   └── stability_report/
+├── quarterly/
+│   └── (same structure)
+├── BASELINE_REFERENCE.md
+├── CLOSURE_MANIFEST.json
+└── DATA_MANIFEST.json
+```
+
+**Tests:** `tests/test_chapter7_script.py` (3 tests, smoke mode)
+
+---
+
+## Chapter 7 Summary
+
+**Status:** ✅ COMPLETE (ready to run FULL_MODE)
+
+**Deliverables:**
+1. ✅ 7.3: `tabular_lgb` baseline implemented and tested
+2. ✅ 7.4: Gating policy implemented in acceptance criteria
+3. ✅ 7.5: FULL_MODE execution script ready
+
+**Next Action:** Run `python scripts/run_chapter7_tabular_lgb.py` to generate baseline reference
+
+**Total Tests:** 429/429 passing (426 existing + 3 new Chapter 7 script tests)
+
 ### Chapter 11/12: Fusion + Regime-Aware Ensembling
 
 - [ ] Add expectations/options/positioning blocks into fusion

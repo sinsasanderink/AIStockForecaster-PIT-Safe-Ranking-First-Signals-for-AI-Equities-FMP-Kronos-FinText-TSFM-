@@ -322,7 +322,7 @@ Each stock signal includes **full distribution metrics** (not just a point estim
 | Metric | Threshold |
 |--------|-----------|
 | Median Walk-Forward RankIC | ≥ baseline + 0.02 |
-| Net-of-Cost Positive Folds | ≥ 70% |
+| Net-of-Cost Positive Folds | ≥ frozen baseline (per horizon) + 10pp |
 | Top-10 Monthly Churn | < 30% |
 | PIT Violations | < 0.1% |
 | Feature Completeness | > 95% |

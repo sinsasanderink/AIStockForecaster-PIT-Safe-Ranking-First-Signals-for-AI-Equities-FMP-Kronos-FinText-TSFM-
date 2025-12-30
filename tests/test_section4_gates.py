@@ -146,7 +146,7 @@ def test_pit_replay_invariance():
     
     store.close()
     
-    return prices_match and mcaps_match and volumes_match and ohlcv_match
+    assert prices_match and mcaps_match and volumes_match and ohlcv_match
 
 
 # =============================================================================
@@ -258,7 +258,7 @@ def test_asof_boundaries_all_types():
     all_passed = all_passed and visible_fund
     
     store.close()
-    return all_passed
+    assert all_passed
 
 
 def test_sec_filing_boundaries():
@@ -269,14 +269,16 @@ def test_sec_filing_boundaries():
     
     if not RUN_INTEGRATION:
         print("  SKIPPED: Set RUN_INTEGRATION=1 to run")
-        return True
+        assert True  # Skip without failure
+        return
     
     from src.data.sec_edgar_client import SECEdgarClient
     
     contact_email = os.getenv("SEC_CONTACT_EMAIL")
     if not contact_email:
         print("  SKIPPED: SEC_CONTACT_EMAIL not set")
-        return True
+        assert True  # Skip without failure
+        return
     
     client = SECEdgarClient(contact_email=contact_email)
     
@@ -285,7 +287,8 @@ def test_sec_filing_boundaries():
     
     if filings.empty:
         print("  SKIPPED: No 10-Q filings found")
-        return True
+        assert True  # Skip without failure
+        return
     
     # Take the most recent filing
     latest = filings.iloc[0]
@@ -314,7 +317,7 @@ def test_sec_filing_boundaries():
         f"Hour (ET): {hour_et}"
     )
     
-    return has_exact_timestamp
+    assert has_exact_timestamp
 
 
 # =============================================================================
@@ -333,7 +336,8 @@ def test_corporate_action_integrity():
     
     if not RUN_INTEGRATION:
         print("  SKIPPED: Set RUN_INTEGRATION=1 to run")
-        return True
+        assert True  # Skip without failure
+        return
     
     from src.data.fmp_client import FMPClient
     
@@ -351,7 +355,8 @@ def test_corporate_action_integrity():
     
     if df.empty:
         print("  SKIPPED: No price data returned")
-        return True
+        assert True  # Skip without failure
+        return
     
     print(f"  Analyzing {len(df)} days of {test_ticker} prices")
     
@@ -396,7 +401,7 @@ def test_corporate_action_integrity():
     # Confirm we're using the right data
     print("    ✓ Using FMP /stable/historical-price-eod/full (split-adjusted)")
     
-    return adj_ok
+    assert adj_ok
 
 
 # =============================================================================
@@ -499,7 +504,7 @@ def test_universe_reproducibility():
     
     store.close()
     
-    return same_result and both_valid and filter_correct
+    assert same_result and both_valid and filter_correct
 
 
 # =============================================================================

@@ -86,9 +86,9 @@ class TestBaselineDefinitions:
     
     def test_registry_has_expected_baselines(self):
         """Verify expected baselines are registered."""
-        assert len(BASELINE_REGISTRY) == 4
+        assert len(BASELINE_REGISTRY) == 5  # 3 factor + 1 ML + 1 sanity
         assert set(BASELINE_REGISTRY.keys()) == {
-            "mom_12m", "momentum_composite", "short_term_strength", "naive_random"
+            "mom_12m", "momentum_composite", "short_term_strength", "tabular_lgb", "naive_random"
         }
     
     def test_factor_baselines_list(self):
@@ -442,8 +442,13 @@ class TestDeterminism:
         pd.testing.assert_frame_equal(output_original, output_shuffled)
     
     def test_all_baselines_deterministic(self, sample_features_df):
-        """All baselines should be deterministic."""
-        for baseline_name in list_baselines():
+        """All baselines should be deterministic (factor baselines only; ML baselines tested separately)."""
+        from src.evaluation.baselines import FACTOR_BASELINES, SANITY_BASELINES
+        
+        # Only test factor and sanity baselines (ML baselines require train_df)
+        baselines_to_test = FACTOR_BASELINES + SANITY_BASELINES
+        
+        for baseline_name in baselines_to_test:
             output1 = generate_baseline_scores(
                 sample_features_df,
                 baseline_name=baseline_name,
@@ -506,14 +511,20 @@ class TestBatchRunner:
     """Test running all baselines at once."""
     
     def test_run_all_baselines(self, sample_features_df):
-        """run_all_baselines should return results for all 3 baselines."""
+        """run_all_baselines should return results for factor and sanity baselines (ML baselines require train_df)."""
+        from src.evaluation.baselines import FACTOR_BASELINES, SANITY_BASELINES
+        
+        # Only run factor and sanity baselines (ML baselines require train_df)
+        baselines_to_run = FACTOR_BASELINES + SANITY_BASELINES
+        
         results = run_all_baselines(
             sample_features_df,
             fold_id="fold_01",
-            horizon=20
+            horizon=20,
+            baselines=baselines_to_run
         )
         
-        assert len(results) == 4
+        assert len(results) == 4  # 3 factor + 1 sanity
         assert set(results.keys()) == {"mom_12m", "momentum_composite", "short_term_strength", "naive_random"}
         
         for name, df in results.items():
@@ -545,11 +556,12 @@ class TestHelpers:
     def test_list_baselines(self):
         """list_baselines should return all baseline names."""
         baselines = list_baselines()
-        assert len(baselines) == 4
+        assert len(baselines) == 5  # 3 factor + 1 ML + 1 sanity
         assert "mom_12m" in baselines
         assert "momentum_composite" in baselines
-        assert "naive_random" in baselines
         assert "short_term_strength" in baselines
+        assert "tabular_lgb" in baselines
+        assert "naive_random" in baselines
     
     def test_get_baseline_description(self):
         """get_baseline_description should return description."""

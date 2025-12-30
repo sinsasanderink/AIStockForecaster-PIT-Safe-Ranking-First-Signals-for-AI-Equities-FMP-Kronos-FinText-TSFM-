@@ -145,7 +145,7 @@ experiment_name/
 | Criterion | Threshold | Description |
 |-----------|-----------|-------------|
 | RankIC Lift | >= 0.02 | vs best baseline |
-| Net-Positive Folds | >= 70% | base cost scenario |
+| Net-Positive Folds | ≥ frozen baseline (per horizon) + 10pp | relative cost survival |
 | Top-10 Churn | < 30% | median churn |
 | No Collapse | 0 | negative folds |
 

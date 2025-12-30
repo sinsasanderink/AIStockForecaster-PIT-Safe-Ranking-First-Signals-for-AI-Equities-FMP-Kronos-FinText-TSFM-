@@ -372,7 +372,7 @@ def test_pit_scanner_violation_types():
         f"Found violations: {[v.violation_type.value for v in violations2]}"
     )
     
-    return True
+    assert has_correct_type
 
 
 def test_cutoff_boundary_cases():
@@ -416,7 +416,7 @@ def test_cutoff_boundary_cases():
         f"Usage at 16:01 ET -> {'VALID' if passed3 else 'VIOLATION'}"
     )
     
-    return passed1 and passed2 and passed3
+    assert passed1 and passed2 and passed3
 
 
 def test_trading_calendar_holidays():
@@ -450,7 +450,7 @@ def test_trading_calendar_holidays():
             f"Expected {'trading' if expected_trading else 'closed'}, got {'trading' if is_trading else 'closed'}"
         )
     
-    return all_passed
+    assert all_passed
 
 
 def test_rebalance_date_generation():
@@ -503,7 +503,7 @@ def test_rebalance_date_generation():
         f"Got {len(quarterly)} quarterly dates: {quarterly}"
     )
     
-    return passed1 and all_trading and correct_eom and passed_quarterly
+    assert passed1 and all_trading and correct_eom and passed_quarterly
 
 
 # =============================================================================
@@ -516,14 +516,16 @@ def test_fmp_client_real_data():
     
     if not RUN_INTEGRATION:
         print("  SKIPPED: Set RUN_INTEGRATION=1 to run")
-        return True
+        assert True  # Skip without failure
+        return
     
     from src.data.fmp_client import FMPClient
     
     api_key = os.getenv("FMP_KEYS")
     if not api_key:
         print("  SKIPPED: No FMP_KEYS in environment")
-        return True
+        assert True  # Skip without failure
+        return
     
     client = FMPClient(api_key=api_key)
     
@@ -581,7 +583,7 @@ def test_fmp_client_real_data():
     
     print(f"\n  Remaining API calls: {client.remaining_requests}")
     
-    return passed1
+    assert passed1
 
 
 def test_full_pit_pipeline():
@@ -590,7 +592,8 @@ def test_full_pit_pipeline():
     
     if not RUN_INTEGRATION:
         print("  SKIPPED: Set RUN_INTEGRATION=1 to run")
-        return True
+        assert True  # Skip without failure
+        return
     
     from src.data.fmp_client import FMPClient
     from src.data.pit_store import DuckDBPITStore
@@ -598,7 +601,8 @@ def test_full_pit_pipeline():
     api_key = os.getenv("FMP_KEYS")
     if not api_key:
         print("  SKIPPED: No FMP_KEYS in environment")
-        return True
+        assert True  # Skip without failure
+        return
     
     client = FMPClient(api_key=api_key)
     store = DuckDBPITStore()  # In-memory
@@ -646,7 +650,7 @@ def test_full_pit_pipeline():
     )
     
     store.close()
-    return True
+    assert validation["valid"]
 
 
 # =============================================================================

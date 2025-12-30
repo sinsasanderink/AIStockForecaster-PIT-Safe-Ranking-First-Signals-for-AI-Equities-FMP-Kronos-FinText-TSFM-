@@ -234,6 +234,8 @@ def run_experiment(
         # Ensure date types match for comparison
         fold_val_start = pd.Timestamp(fold["val_start"]) if not isinstance(fold["val_start"], pd.Timestamp) else fold["val_start"]
         fold_val_end = pd.Timestamp(fold["val_end"]) if not isinstance(fold["val_end"], pd.Timestamp) else fold["val_end"]
+        fold_train_start = pd.Timestamp(fold["train_start"]) if not isinstance(fold["train_start"], pd.Timestamp) else fold["train_start"]
+        fold_train_end = pd.Timestamp(fold["train_end"]) if not isinstance(fold["train_end"], pd.Timestamp) else fold["train_end"]
         
         # Convert date column if needed
         if features_df["date"].dtype == object or hasattr(features_df["date"].iloc[0], 'isoformat'):
@@ -241,9 +243,16 @@ def run_experiment(
         else:
             date_series = features_df["date"]
         
+        # Extract validation features
         fold_features = features_df[
             (date_series >= fold_val_start) &
             (date_series <= fold_val_end)
+        ].copy()
+        
+        # Extract training features (for ML baselines)
+        fold_train_features = features_df[
+            (date_series >= fold_train_start) &
+            (date_series <= fold_train_end)
         ].copy()
         
         if len(fold_features) == 0:
@@ -273,6 +282,7 @@ def run_experiment(
                     fold_id=fold["fold_id"],
                     horizon=horizon,
                     excess_return_col=excess_return_col,  # Pass horizon-specific column
+                    train_df=fold_train_features if len(fold_train_features) > 0 else None  # For ML baselines
                 )
             else:
                 # Custom model
