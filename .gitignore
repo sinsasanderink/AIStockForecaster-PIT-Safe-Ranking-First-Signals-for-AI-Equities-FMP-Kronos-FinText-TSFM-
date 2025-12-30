@@ -56,7 +56,9 @@ data/*.duckdb
 
 # Evaluation outputs (large, regenerable) - except frozen reference artifacts
 evaluation_outputs/*
-!evaluation_outputs/chapter6_closure_real/
+!evaluation_outputs/
+!evaluation_outputs/chapter6_closure_real/**
+!evaluation_outputs/chapter7_tabular_lgb_real/**
 
 # Models (large files)
 models/kronos/
