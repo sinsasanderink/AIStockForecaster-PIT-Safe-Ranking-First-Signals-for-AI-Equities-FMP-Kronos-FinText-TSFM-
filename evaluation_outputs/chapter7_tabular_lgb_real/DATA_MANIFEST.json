@@ -1,0 +1,15 @@
+{
+  "n_rows": 192307,
+  "n_tickers": 100,
+  "date_range": {
+    "start": "2016-01-04 00:00:00",
+    "end": "2025-02-19 00:00:00"
+  },
+  "horizons": [
+    20,
+    60,
+    90
+  ],
+  "source": "duckdb",
+  "data_hash": "f3899b37cb9f34f1"
+}

@@ -1,0 +1,77 @@
+{
+  "chapter": "7.5",
+  "baseline": "tabular_lgb",
+  "mode": "FULL",
+  "timestamp": "2025-12-30T21:20:04.887822Z",
+  "commit_hash": "a264fd2a",
+  "data_hash": "f3899b37cb9f34f1",
+  "data_manifest": {
+    "n_rows": 192307,
+    "n_tickers": 100,
+    "date_range": {
+      "start": "2016-01-04 00:00:00",
+      "end": "2025-02-19 00:00:00"
+    },
+    "horizons": [
+      20,
+      60,
+      90
+    ],
+    "source": "duckdb",
+    "data_hash": "f3899b37cb9f34f1"
+  },
+  "monthly_summary": {
+    "cadence": "monthly",
+    "n_folds": 109,
+    "horizons": {
+      "20": {
+        "median_rankic": 0.1009022301519918,
+        "ic_stability": 0.1686711183189574,
+        "cost_survival_pct_positive": 0.06422018348623854,
+        "cost_survival_median_net_er": -0.0794832991105081,
+        "churn_top10_median": 0.1999999999999999
+      },
+      "60": {
+        "median_rankic": 0.1274801148218869,
+        "ic_stability": 0.1237884548399063,
+        "cost_survival_pct_positive": 0.45871559633027525,
+        "cost_survival_median_net_er": -0.0063488202103898,
+        "churn_top10_median": 0.1999999999999999
+      },
+      "90": {
+        "median_rankic": 0.1808251289263947,
+        "ic_stability": 0.1183481199656534,
+        "cost_survival_pct_positive": 0.5688073394495413,
+        "cost_survival_median_net_er": 0.0389956754851421,
+        "churn_top10_median": 0.1999999999999999
+      }
+    }
+  },
+  "quarterly_summary": {
+    "cadence": "quarterly",
+    "n_folds": 36,
+    "horizons": {
+      "20": {
+        "median_rankic": 0.04617317003257495,
+        "ic_stability": 0.22485166556434066,
+        "cost_survival_pct_positive": 0.0,
+        "cost_survival_median_net_er": -0.08616189683800934,
+        "churn_top10_median": 0.1999999999999999
+      },
+      "60": {
+        "median_rankic": 0.07439529467894129,
+        "ic_stability": 0.21500241501074757,
+        "cost_survival_pct_positive": 0.3611111111111111,
+        "cost_survival_median_net_er": -0.0267669931002694,
+        "churn_top10_median": 0.1999999999999999
+      },
+      "90": {
+        "median_rankic": 0.1034689978637806,
+        "ic_stability": 0.16991288143105077,
+        "cost_survival_pct_positive": 0.5,
+        "cost_survival_median_net_er": -0.0118895214958983,
+        "churn_top10_median": 0.1999999999999999
+      }
+    }
+  }
+}
