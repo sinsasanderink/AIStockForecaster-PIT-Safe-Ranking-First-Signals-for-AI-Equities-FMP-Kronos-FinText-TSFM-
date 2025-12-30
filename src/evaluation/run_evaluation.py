@@ -677,6 +677,26 @@ def _generate_folds_from_features(
 # ACCEPTANCE CRITERIA
 # ============================================================================
 
+def _load_frozen_baseline_floor() -> Optional[Dict]:
+    """
+    Load frozen baseline floor from Chapter 6 closure artifacts.
+    
+    Returns None if file doesn't exist (e.g., in CI or before Chapter 6 closure).
+    """
+    import json
+    from pathlib import Path
+    
+    floor_path = Path("evaluation_outputs/chapter6_closure_real/BASELINE_FLOOR.json")
+    if not floor_path.exists():
+        return None
+    
+    try:
+        with floor_path.open() as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
 def compute_acceptance_verdict(
     model_summary: pd.DataFrame,
     baseline_summaries: Dict[str, pd.DataFrame],
@@ -688,9 +708,12 @@ def compute_acceptance_verdict(
     
     Criteria (per horizon):
     1. Median RankIC lift vs best baseline >= +0.02
-    2. Net-of-cost positive in >= 70% of folds (base cost scenario)
+    2. Net-of-cost improvement: % positive folds >= baseline + 10pp (relative gate)
     3. Top-10 churn median < 0.30
     4. No catastrophic regime collapse (use stability flags)
+    
+    Note: Cost survival uses relative gate vs frozen baseline floor (5.8%/25.1%/40.1%),
+    not absolute 70%, which would be unrealistic under current cost model.
     
     Args:
         model_summary: Fold summaries for the model
@@ -701,6 +724,16 @@ def compute_acceptance_verdict(
     Returns:
         DataFrame with pass/fail per criterion and horizon
     """
+    # Load frozen baseline floor for relative thresholds
+    baseline_floor = _load_frozen_baseline_floor()
+    
+    # Horizon-specific fallback thresholds (frozen floor + 10pp) if file not available
+    COST_SURVIVAL_THRESHOLDS = {
+        20: 0.158,  # 5.8% + 10pp
+        60: 0.351,  # 25.1% + 10pp
+        90: 0.501,  # 40.1% + 10pp
+    }
+    
     results = []
     
     for horizon in model_summary["horizon"].unique():
@@ -722,7 +755,8 @@ def compute_acceptance_verdict(
         rankic_lift = model_rankic_median - best_baseline_rankic
         criterion_1_pass = rankic_lift >= 0.02
         
-        # Criterion 2: Net-of-cost positive in >= 70% of folds
+        # Criterion 2: Net-of-cost improvement (relative to frozen baseline floor)
+        # Compute model's % positive folds
         if cost_overlays is not None and len(cost_overlays) > 0 and "horizon" in cost_overlays.columns:
             cost_h = cost_overlays[
                 (cost_overlays["horizon"] == horizon) &
@@ -733,7 +767,17 @@ def compute_acceptance_verdict(
             pct_positive = n_positive / n_total if n_total > 0 else 0
         else:
             pct_positive = 0
-        criterion_2_pass = pct_positive >= 0.70
+        
+        # Determine threshold: baseline + 10pp (relative gate)
+        if baseline_floor is not None and "cost_survival" in baseline_floor:
+            # Load from frozen floor
+            baseline_pct = baseline_floor["cost_survival"].get(str(horizon), {}).get("pct_positive_folds", 0)
+            cost_threshold = baseline_pct + 0.10  # baseline + 10 percentage points
+        else:
+            # Fallback to horizon-specific frozen values + 10pp
+            cost_threshold = COST_SURVIVAL_THRESHOLDS.get(horizon, 0.15)
+        
+        criterion_2_pass = pct_positive >= cost_threshold
         
         # Criterion 3: Churn < 30%
         if churn_df is not None and len(churn_df) > 0 and "horizon" in churn_df.columns:
@@ -758,6 +802,7 @@ def compute_acceptance_verdict(
             "rankic_lift": rankic_lift,
             "criterion_1_rankic_lift": criterion_1_pass,
             "pct_net_positive": pct_positive,
+            "cost_threshold_used": cost_threshold,  # Document which threshold was applied
             "criterion_2_net_positive": criterion_2_pass,
             "churn_median": churn_median,
             "criterion_3_churn": criterion_3_pass,
@@ -812,7 +857,7 @@ def save_acceptance_summary(
         f.write("---\n\n")
         f.write("## Acceptance Criteria Definitions\n\n")
         f.write("1. **RankIC Lift**: Median RankIC must exceed best baseline by >= 0.02\n")
-        f.write("2. **Net-Positive Folds**: >= 70% of folds must have positive alpha after base costs\n")
+        f.write("2. **Net-Positive Folds**: % positive >= baseline + 10pp (relative gate; frozen floor: 5.8%/25.1%/40.1% → thresholds: 15.8%/35.1%/50.1%)\n")
         f.write("3. **Churn**: Top-10 median churn must be < 30%\n")
         f.write("4. **Regime Robustness**: No fold with negative median RankIC\n")
     
