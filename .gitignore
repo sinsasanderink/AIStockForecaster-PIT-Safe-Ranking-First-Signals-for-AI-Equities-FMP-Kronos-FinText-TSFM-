@@ -54,11 +54,25 @@ data/*.duckdb
 *.pickle
 !requirements.txt
 
-# Evaluation outputs (large, regenerable) - except frozen reference artifacts
+# Evaluation outputs (large, regenerable)
 evaluation_outputs/*
 !evaluation_outputs/
-!evaluation_outputs/chapter6_closure_real/**
-!evaluation_outputs/chapter7_tabular_lgb_real/**
+
+# Keep FULL freeze artifacts under version control (ONLY the 3 small files)
+!evaluation_outputs/chapter7_tabular_lgb_full/
+evaluation_outputs/chapter7_tabular_lgb_full/**
+!evaluation_outputs/chapter7_tabular_lgb_full/BASELINE_REFERENCE.md
+!evaluation_outputs/chapter7_tabular_lgb_full/CLOSURE_MANIFEST.json
+!evaluation_outputs/chapter7_tabular_lgb_full/DATA_MANIFEST.json
+
+# Keep Chapter 6 freeze metadata only (avoid huge parquet/csv directories)
+!evaluation_outputs/chapter6_closure_real/
+evaluation_outputs/chapter6_closure_real/**
+!evaluation_outputs/chapter6_closure_real/BASELINE_REFERENCE.md
+!evaluation_outputs/chapter6_closure_real/CLOSURE_MANIFEST.json
+!evaluation_outputs/chapter6_closure_real/DATA_MANIFEST.json
+
+# IMPORTANT: keep smoke outputs ignored (do NOT unignore chapter7_tabular_lgb_real)
 
 # Models (large files)
 models/kronos/
