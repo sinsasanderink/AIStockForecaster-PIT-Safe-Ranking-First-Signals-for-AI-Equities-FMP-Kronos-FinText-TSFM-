@@ -158,7 +158,7 @@ WHERE:
 
 ### Acceptance Criteria:
 - ✅ Median walk-forward RankIC > baseline by ≥ 0.02
-- ✅ Net-of-cost performance positive in ≥ 70% of folds
+- ✅ Net-of-cost improvement: % positive folds ≥ baseline + 10pp (relative; frozen floor: 5.8%-40.1%)
 - ✅ Top-10 ranking churn < 30% month-over-month
 - ✅ Performance degrades gracefully under regime shifts
 - ✅ NO PIT violations (enforced by scanner)

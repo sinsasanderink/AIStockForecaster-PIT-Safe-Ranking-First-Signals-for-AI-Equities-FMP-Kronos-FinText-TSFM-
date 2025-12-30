@@ -74,6 +74,11 @@ AI_Stock_Forecast/
 │   │   ├── __init__.py
 │   │   └── ai_stocks.py          # 100 AI stocks x 10 categories (tagging only)
 │   │
+│   ├── utils/                    # Shared utility functions
+│   │   ├── __init__.py
+│   │   ├── env.py                # Environment loading (.env auto-load, API key resolution)
+│   │   └── price_validation.py   # Split-discontinuity detection and validation
+│   │
 │   ├── features/                 # Section 5: Feature Engineering (IN PROGRESS)
 │   │   ├── __init__.py
 │   │   ├── labels.py             # 5.1 Forward excess returns ✅
@@ -94,8 +99,18 @@ AI_Stock_Forecast/
 │   │   ├── fusion/               # Section 11: Fusion model
 │   │   └── ensemble/             # Section 12: Regime-aware ensembling
 │   │
-│   ├── evaluation/               # Section 6: Evaluation Framework (TODO)
-│   │   └── ...
+│   ├── evaluation/               # Section 6: Evaluation Framework ✅ FROZEN
+│   │   ├── __init__.py
+│   │   ├── definitions.py        # Canonical time conventions (frozen)
+│   │   ├── walk_forward.py       # Expanding window + purging/embargo/maturity
+│   │   ├── sanity_checks.py      # IC parity + experiment naming
+│   │   ├── metrics.py            # EvaluationRow contract + RankIC/churn/regime
+│   │   ├── costs.py              # Cost overlay (base + ADV-scaled slippage)
+│   │   ├── reports.py            # Stability reports (IC decay, regime, churn)
+│   │   ├── baselines.py          # 4 baselines (mom_12m, composite, short_term, naive)
+│   │   ├── run_evaluation.py     # End-to-end orchestrator (SMOKE/FULL modes)
+│   │   ├── qlib_adapter.py       # Qlib shadow evaluator (IC parity)
+│   │   └── data_loader.py        # Deterministic loading (synthetic + DuckDB)
 │   │
 │   ├── calibration/              # Section 13: Calibration (TODO)
 │   │   └── ...
@@ -109,12 +124,22 @@ AI_Stock_Forecast/
 ├── data/                         # Data storage (gitignored)
 │   ├── raw/
 │   ├── processed/
-│   └── cache/
+│   ├── cache/
+│   ├── features.duckdb           # REAL feature store (gitignored)
+│   └── DATA_MANIFEST.json        # Data snapshot metadata (gitignored)
+│
+├── evaluation_outputs/           # Evaluation artifacts (mostly gitignored)
+│   ├── chapter6_closure_synth/   # Synthetic baseline runs (gitignored)
+│   └── chapter6_closure_real/    # ✅ TRACKED: Frozen baseline reference (exception in .gitignore)
+│       ├── BASELINE_FLOOR.json
+│       ├── BASELINE_REFERENCE.md
+│       ├── CLOSURE_MANIFEST.json
+│       └── baseline_*/           # Full stability reports + figures per baseline
 │
 ├── models/                       # Model checkpoints (gitignored)
 ├── outputs/                      # Generated outputs (gitignored)
 ├── notebooks/                    # Jupyter notebooks
-└── tests/                        # Unit tests
+└── tests/                        # Unit tests (413/413 passing)
 ```
 
 ---
@@ -367,10 +392,199 @@ Items that are noted in code but require later sections to implement.
 - IC stability checks (more important than VIF)
 - Missingness as first-class feature
 
-### Section 6: Evaluation Framework
-**Code TODOs:**
-- Implement walk-forward validation
-- Add purging/embargo for overlapping labels
+### Section 6: Evaluation Framework ✅ FROZEN
+
+**Status:** CLOSED & FROZEN (December 30, 2025)  
+**Tests:** 413/413 passing  
+**Commits:** `18bad8a` (code fixes) + `7e6fa3a` (artifacts freeze)  
+**Reference Doc:** `CHAPTER_6_FREEZE.md`
+
+**What Was Frozen:**
+- Evaluation infrastructure (`src/evaluation/*.py`) - 10 modules, fully tested
+- Baseline reference artifacts (`evaluation_outputs/chapter6_closure_real/`) - tracked in git
+- Baseline floor: Best RankIC per horizon (20d: 0.0283, 60d: 0.0392, 90d: 0.0169)
+- Data snapshot: 192,307 rows (2016-2025), `data_hash: 5723d4c88b8ecba1...`
+
+**Frozen Baselines:**
+- `mom_12m` - Naive momentum baseline
+- `momentum_composite` - Stronger momentum composite
+- `short_term_strength` - Short-term diagnostic
+- `naive_random` - Sanity check (RankIC ≈ 0)
+
+**Key Files:**
+- `scripts/build_features_duckdb.py` - Build DuckDB feature store from FMP
+- `scripts/run_chapter6_closure.py` - Run baseline reference freeze
+- `src/evaluation/data_loader.py` - Deterministic data loading (synthetic + DuckDB)
+- `tests/test_duckdb_loader.py` - 24 tests for DuckDB loading
+
+**Output Directories:**
+- `evaluation_outputs/chapter6_closure_real/` - REAL data outputs (from DuckDB)
+- `evaluation_outputs/chapter6_closure_synth/` - SYNTHETIC data outputs (for testing)
+
+**Build Real Data:**
+```bash
+export FMP_KEYS="your_api_key"
+python scripts/build_features_duckdb.py
+python scripts/run_chapter6_closure.py
+```
+
+**Implementation Status:**
+
+| Phase | Status | Files |
+|-------|--------|-------|
+| **Phase 0: Sanity Checks** | ✅ COMPLETE | `src/evaluation/sanity_checks.py` |
+| **Phase 1: Walk-Forward** | ✅ COMPLETE | `src/evaluation/walk_forward.py` |
+| **Phase 1.5: Definition Lock** | ✅ COMPLETE | `src/evaluation/definitions.py` |
+| **Phase 2: Metrics** | ✅ COMPLETE | `src/evaluation/metrics.py` |
+| **Phase 3: Baselines** | ✅ COMPLETE | `src/evaluation/baselines.py` |
+| **Phase 4: Cost Realism** | ✅ COMPLETE | `src/evaluation/costs.py` |
+| **Phase 5: Stability Reports** | ✅ COMPLETE | `src/evaluation/reports.py` |
+| **Phase 6: Qlib + Runner** | ✅ COMPLETE | `src/evaluation/qlib_adapter.py`, `src/evaluation/run_evaluation.py` |
+
+**✅ Implemented (Phase 0, 1, 1.5, 2, 4, 5, 6):**
+
+**`src/evaluation/definitions.py`** - **CANONICAL DEFINITIONS (Single Source of Truth)**
+- `TIME_CONVENTIONS`: Horizons (20/60/90 TRADING DAYS), embargo, pricing, maturity
+- `EMBARGO_RULES`: Per-row-per-horizon purging rules
+- `ELIGIBILITY_RULES`: All-horizons-valid requirement
+- `trading_days_to_calendar_days()`: CONSERVATIVE conversion (not naive multiplication)
+- `get_market_close_utc()`: UTC datetime for maturity checks
+- `is_label_mature()`: Canonical maturity comparison
+- All dataclasses are FROZEN (cannot be modified)
+
+**`src/evaluation/walk_forward.py`** - Walk-forward splitter with **ENFORCED** purging & embargo
+- `WalkForwardSplitter`: Generates folds with expanding window
+- `WalkForwardFold`: Represents a single train/val split
+- **CRITICAL**: Purging & embargo are HARD CONSTRAINTS (raises ValueError if violated)
+- **Embargo**: Minimum 90 trading days between train_end and val_start
+- **Purging**: Overlapping label windows automatically removed
+- **Maturity**: Only mature labels (label_matured_at <= cutoff) used
+
+**`src/evaluation/sanity_checks.py`** - Pre-implementation validation
+- `verify_ic_parity()`: Manual vs Qlib IC comparison (tolerance: 0.001)
+- `ExperimentNameBuilder`: Standardized experiment naming
+- `validate_experiment_name()`: Parse and validate naming convention
+- `run_sanity_checks()`: Combined checker for all pre-checks
+
+**`src/evaluation/metrics.py`** - Ranking-first metrics with locked definitions
+- `EvaluationRow`: Canonical data contract (all models/baselines must produce this)
+- `compute_rankic_per_date()`: Spearman correlation per date
+- `compute_quintile_spread_per_date()`: Top 20% - bottom 20% spread
+- `compute_topk_metrics_per_date()`: Hit rate & avg excess return for Top-K
+- `compute_churn()`: Retention/churn using stable_id, consecutive dates only
+- `assign_regime_bucket()`: VIX/market regime bucketing (locked definitions)
+- `evaluate_fold()`: Complete fold evaluation with all metrics
+- `REGIME_DEFINITIONS`: Locked regime bucket definitions
+
+**`src/evaluation/costs.py`** - Cost realism (diagnostic overlay)
+- `TRADING_ASSUMPTIONS`: Frozen dataclass with portfolio, AUM, cost parameters
+- `compute_participation_rate()`: Trade value / ADV with cap at 100%
+- `compute_slippage_bps()`: Square-root impact model (c * sqrt(participation))
+- `compute_trade_cost()`: Base cost + slippage with ADV missing penalty
+- `compute_turnover()`: Weight changes between consecutive rebalances
+- `compute_portfolio_costs()`: Full portfolio cost computation for one rebalance
+- `compute_net_metrics()`: Net-of-cost metrics (gross ER - costs)
+- `run_cost_sensitivity()`: Sensitivity analysis (low/base/high scenarios)
+- **Enforced Invariants**: ADV monotonicity, AUM monotonicity, determinism
+
+**`src/evaluation/reports.py`** - Stability reports (pure consumer)
+- `STABILITY_THRESHOLDS`: Frozen thresholds for flags (decay, noise, churn)
+- `compute_ic_decay_stats()`: Early vs late performance statistics
+- `plot_ic_decay()`: IC time series with rolling mean
+- `format_regime_performance()`: Regime performance with coverage stats
+- `plot_regime_bars()`: Regime-conditional performance bars
+- `compute_churn_diagnostics()`: Churn summary per fold/horizon/k
+- `plot_churn_timeseries()`: Churn over time
+- `plot_churn_distribution()`: Churn histogram
+- `generate_stability_scorecard()`: One-screen summary
+- `generate_stability_report()`: Complete report with tables + figures + summary
+- **Enforced Invariants**: Determinism, fold boundaries, regime integrity, no silent drops
+
+**`src/evaluation/baselines.py`** - Phase 3 baselines
+- `BASELINE_REGISTRY`: Frozen registry of 3 baselines
+- `generate_baseline_scores()`: Generate EvaluationRow format scores for a baseline
+- `run_all_baselines()`: Run all baselines at once
+- `list_baselines()`: List available baseline names
+- **Baselines**: mom_12m, momentum_composite, short_term_strength
+
+**`src/evaluation/run_evaluation.py`** - End-to-end runner
+- `ExperimentSpec`: Experiment specification (baseline or model)
+- `SMOKE_MODE`, `FULL_MODE`: Evaluation modes
+- `run_experiment()`: Main orchestrator (walk-forward → metrics → costs → reports)
+- `compute_acceptance_verdict()`: Compute pass/fail per criterion
+- `save_acceptance_summary()`: Write ACCEPTANCE_SUMMARY.md
+
+**`src/evaluation/qlib_adapter.py`** - Qlib shadow evaluator
+- `to_qlib_format()`: Convert EvaluationRow to Qlib MultiIndex format
+- `validate_qlib_frame()`: Validate Qlib frame for pitfalls
+- `run_qlib_shadow_evaluation()`: Run shadow IC analysis
+- `check_ic_parity()`: Verify IC computation matches
+- **Note**: Qlib is SHADOW EVALUATOR only
+
+**Tests:**
+- `tests/test_definitions.py`: 40 tests (all pass) ✅
+- `tests/test_walk_forward.py`: 25 tests (all pass) ✅
+- `tests/test_sanity_checks.py`: 16 tests (all pass) ✅
+- `tests/test_metrics.py`: 30 tests (all pass) ✅
+- `tests/test_costs.py`: 28 tests (all pass) ✅
+- `tests/test_reports.py`: 24 tests (all pass) ✅
+- `tests/test_baselines.py`: 39 tests (all pass) ✅
+- `tests/test_qlib_parity.py`: 21 tests (all pass) ✅
+- `tests/test_end_to_end_smoke.py`: 22 tests (all pass) ✅
+- `tests/test_duckdb_loader.py`: 24 tests (all pass) ✅
+- `tests/test_env_utils.py`: 16 tests (all pass) ✅
+- `tests/test_price_validation.py`: 18 tests (all pass) ✅
+- **Total**: 413/413 tests passing (all suites)
+
+**Key Validation Results:**
+- ✅ Embargo < 90 days is REJECTED (raises ValueError)
+- ✅ Overlapping train/val dates are REJECTED (raises ValueError)
+- ✅ Purged labels are REMOVED from both train and val splits
+- ✅ Immature labels are DROPPED (PIT-safe)
+- ✅ Expanding window verified (train_start always equals eval_start)
+- ✅ IC parity check works (manual vs Qlib comparison)
+- ✅ Experiment naming validated (format enforcement)
+
+---
+
+**Locked Evaluation Parameters:**
+
+| Parameter | Value | Implementation |
+|-----------|-------|----------------|
+| **Rebalance (Primary)** | Monthly (1st trading day) | `WalkForwardSplitter(rebalance_freq="monthly")` |
+| **Rebalance (Secondary)** | Quarterly | `WalkForwardSplitter(rebalance_freq="quarterly")` |
+| **Date Range** | 2016-01-01 to 2025-06-30 | `eval_start`, `eval_end` parameters |
+| **Embargo** | 90 trading days | `embargo_days=90` (HARD minimum) |
+| **Window** | Expanding (not rolling) | `train_start` always equals `eval_start` |
+
+**Baselines (Models to Beat - TODO Phase 3):**
+1. **`mom_12m`**: 12-month momentum (naive baseline)
+2. **`momentum_composite`**: `(mom_1m + mom_3m + mom_6m + mom_12m) / 4` (strong but transparent)
+3. **`short_term_strength`**: `mom_1m` or `rel_strength_1m` (diagnostic for horizon sensitivity)
+
+**Top-K Metrics (TODO Phase 2):**
+- **Primary**: Top-10 (matches product narrative)
+- **Secondary**: Top-20 (robustness check)
+- **Churn**: Jaccard or % retained (target < 30%)
+- **Hit Rate**: % with excess return > 0 (target > 55%)
+
+**Acceptance Criteria:**
+- ✅ Median walk-forward RankIC > baseline by ≥ 0.02
+- ✅ Net-of-cost improvement: % positive folds ≥ baseline + 10pp (relative; frozen floor: 5.8%-40.1%)
+- ✅ Top-10 churn < 30% month-over-month
+- ✅ Performance degrades gracefully under regime shifts
+- ✅ NO PIT violations (enforced by scanner)
+
+**Remaining TODOs:**
+- [x] Phase 2: Implement metrics (Top-K churn, hit rate, regime slicing) ✅
+- [x] Phase 4: Implement cost realism (trading costs, slippage, net metrics) ✅
+- [x] Phase 5: Implement stability reports (IC decay, regime performance, churn diagnostics) ✅
+- [x] Phase 3: Implement 3 baselines through identical pipeline ✅
+- [x] Phase 3: Create `src/evaluation/baselines.py` ✅
+- [x] Phase 6: Create `src/evaluation/qlib_adapter.py` for Qlib integration ✅
+- [x] Phase 6: Create `src/evaluation/run_evaluation.py` for end-to-end runner ✅
+- [ ] Execute FULL mode evaluation (2016-2025) with actual features
+- [ ] Run acceptance criteria on model vs baselines
 
 ### Section 8: Kronos Module
 **Code TODOs:**

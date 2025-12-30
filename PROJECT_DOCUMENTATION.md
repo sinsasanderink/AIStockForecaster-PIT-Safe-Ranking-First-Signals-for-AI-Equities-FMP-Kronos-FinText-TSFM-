@@ -1203,7 +1203,291 @@ results = neutralization_report(
 - IC sign consistent across ≥70% of rolling windows
 - Redundancy understood: feature blocks documented
 
-### Chapter 6: Evaluation Realism
+### Chapter 6: Evaluation Realism ✅ CLOSED & FROZEN
+
+---
+
+## 🔒 FREEZE STATUS
+
+**Status:** CLOSED & FROZEN (December 30, 2025)  
+**Tests:** 413/413 passing  
+**Commits:** `18bad8a` (code fixes) + `7e6fa3a` (artifacts freeze)  
+**Reference Doc:** `CHAPTER_6_FREEZE.md`  
+**Baseline Floor:** Best RankIC per horizon (20d: 0.0283, 60d: 0.0392, 90d: 0.0169)
+
+**Frozen Artifacts (tracked in git):**
+- `evaluation_outputs/chapter6_closure_real/` - Baseline reference artifacts (IMMUTABLE)
+- `BASELINE_FLOOR.json` - Metrics to beat for Chapter 7+
+- `BASELINE_REFERENCE.md` - Usage instructions
+- `CLOSURE_MANIFEST.json` - Commit hash, data hash, environment
+
+**What This Means:**
+- ✅ Chapter 6 evaluation infrastructure is COMPLETE and may not be modified
+- ✅ Baseline reference is FROZEN and is the immutable comparison anchor
+- ✅ Chapter 7+ models must use this frozen pipeline and beat the frozen baseline floor
+- ⚠️ Any changes to evaluation definitions require a new version and re-freeze
+
+---
+
+## DEFINITION LOCK — SINGLE SOURCE OF TRUTH ✅ IMPLEMENTED
+
+**Canonical File:** `src/evaluation/definitions.py`
+
+All evaluation code MUST reference this file for time conventions, not define their own.
+This prevents silent interpretation drift that can invalidate results.
+
+### Time Conventions (LOCKED)
+
+| Parameter | Value | Unit | Rationale |
+|-----------|-------|------|-----------|
+| **Horizons** | 20, 60, 90 | TRADING DAYS | Not calendar days |
+| **Embargo** | 90 | TRADING DAYS | Must be ≥ max horizon |
+| **Rebalance** | 1st of month/quarter | Calendar day | First trading day approximation |
+| **Pricing** | Close-to-close | - | Labels use closing prices |
+| **Market Close** | 4:00 PM ET | Time | UTC conversion done in code |
+
+### Maturity Rule (LOCKED)
+
+**Canonical:** `label_matured_at <= cutoff_close_utc`
+
+- Cutoff is market close time (4 PM ET) converted to UTC
+- Code uses `get_market_close_utc(date)` helper
+- Naive datetimes are REJECTED (must be timezone-aware)
+
+### Purging Rules (LOCKED)
+
+| Rule | Applies To | Condition |
+|------|------------|-----------|
+| Train purge | Training labels | T + H (trading days) > train_end |
+| Val purge | Validation labels | T - H (trading days) < train_end |
+| Granularity | All | Per-row-per-horizon (NOT global) |
+
+### End-of-Sample Eligibility (LOCKED)
+
+- **Rule:** `all_horizons_must_be_valid`
+- **Valid label:** exists + matured + required fields populated
+- **Partial horizons:** NOT ALLOWED in Chapter 6
+
+### Implementation Status
+
+| Component | File | Tests | Status |
+|-----------|------|-------|--------|
+| Definitions | `src/evaluation/definitions.py` | 40 tests | ✅ |
+| Walk-Forward | `src/evaluation/walk_forward.py` | 25 tests | ✅ |
+| Sanity Checks | `src/evaluation/sanity_checks.py` | 16 tests | ✅ |
+| Metrics | `src/evaluation/metrics.py` | 30 tests | ✅ |
+| Costs | `src/evaluation/costs.py` | 28 tests | ✅ |
+
+**Total:** 139/139 tests passing (includes 16 tests for sanity_checks not in evaluation suite)
+
+---
+
+## 6.0 Pre-Implementation Sanity Checks
+
+**BEFORE writing any Chapter 6 code, complete these two validation steps:**
+
+### ✅ Sanity Check 1: Manual IC vs Qlib IC Parity Test
+
+**Purpose:** Ensure adapter/indexing is correct before generating hundreds of evaluation reports.
+
+**Test Protocol:**
+```python
+# One fold, one horizon, same predictions
+fold = "2023-Q1"
+horizon = 20
+
+# Manual RankIC calculation
+manual_rankic = df.groupby("date").apply(
+    lambda x: spearmanr(x["prediction"], x["label"])[0]
+).median()
+
+# Qlib RankIC calculation
+qlib_df = adapter.to_qlib_format(predictions, labels)
+qlib_rankic = qlib.evaluate(qlib_df)["IC"].median()
+
+# STOP if they don't match
+assert abs(manual_rankic - qlib_rankic) < 0.001, "IC mismatch - fix adapter!"
+```
+
+**Acceptance:** Manual and Qlib RankIC must agree to 3 decimal places.
+
+**If they don't match → STOP immediately:**
+- Check MultiIndex formatting (datetime, instrument)
+- Check date alignment (T vs T+H)
+- Check for missing data handling differences
+- Check for sign flips (prediction vs label)
+
+### ✅ Sanity Check 2: Experiment Naming Convention
+
+**Purpose:** Prevent chaos when Recorder usage explodes across hundreds of experiments.
+
+**Convention (LOCK THIS IN NOW):**
+```
+exp = ai_forecaster/
+      horizon={20,60,90}/
+      model={kronos_v0, fintext_v0, tabular_lgb, baseline_mom12m}/
+      labels={v1_priceonly, v2_totalreturn}/
+      fold={01, 02, ..., 40}/
+```
+
+**Example paths:**
+```
+ai_forecaster/horizon=20/model=kronos_v0/labels=v2/fold=03
+ai_forecaster/horizon=60/model=baseline_mom12m/labels=v2/fold=12
+ai_forecaster/horizon=90/model=tabular_lgb/labels=v2/fold=25
+```
+
+**Why this matters:**
+- Enables bulk queries: "all Kronos results for horizon=20"
+- Prevents accidental overwrites
+- Makes debugging obvious (path tells you what broke)
+- Enables automated comparison scripts
+
+**Implementation:**
+```python
+from qlib.workflow import R
+
+exp_name = f"ai_forecaster/horizon={horizon}/model={model_name}/labels={label_version}/fold={fold_id:02d}"
+with R.start(experiment_name=exp_name):
+    recorder.save_objects(predictions=pred_df)
+```
+
+---
+
+## 6.1 Evaluation Strategy (Lock Before Coding)
+
+### Rebalance Cadence
+
+**Primary: Monthly**
+- Cleanest match to horizons (20d ≈ 1 month)
+- Enough samples for statistical significance (~110 points over 9.5 years)
+- Overlapping holdings for 60/90d are realistic (not a bug)
+- Monthly is evaluation of ranking signals, not execution simulation
+
+**Secondary: Quarterly (robustness check only)**
+- Report as supplementary slice
+- Fewer points → noisier, easier to fool yourself
+- Use to confirm results aren't regime-specific artifacts
+
+**Rebalance date:** First trading day of each month (NYSE calendar)
+
+**Rationale:**
+- 20d horizon + monthly rebalance = one horizon per rebalance (natural)
+- 60/90d horizons + monthly rebalance = overlapping positions (realistic for Chapter 6)
+- Quarterly would give too few observations (<40 points)
+
+### Evaluation Date Range
+
+**Principles:**
+1. **PIT-safe end date:** Last `as_of_date` with `label_matured_at` available for 90d horizon
+2. **Regime diversity:** Include multiple market regimes (pre-COVID, COVID, 2022 drawdown, 2023-25 AI rally)
+
+**Locked Parameters:**
+```python
+EVAL_START = "2016-01-01"  # Earliest date with reliable fundamentals + universe snapshots
+EVAL_END = "2025-06-30"    # Conservative: guarantees 90d label maturity
+
+# Dynamic alternative (if needed):
+# EVAL_END = max_label_matured_at - pd.Timedelta(days=90)  # computed from labels table
+```
+
+**Why 2016-01-01?**
+- FMP fundamentals become more reliable
+- Universe snapshots (stable_id) have sufficient coverage
+- Captures ~9.5 years = enough for regime diversity
+
+**Why 2025-06-30?**
+- Guarantees all 90d labels are mature (no future leakage)
+- Includes 2023-25 AI rally (critical for AI stock forecaster)
+- Conservative: leaves buffer for label maturity
+
+**Result:** ~110 monthly rebalance points, multiple regimes, zero PIT violations.
+
+### Baselines (Models to Beat)
+
+**3 baselines to beat:**
+
+**Baseline A: `mom_12m` (primary naive baseline)**
+- Rank stocks by 12-month momentum feature
+- Standard factor baseline (embarrassing if we can't beat this)
+- Already in feature set (`src/features/price_features.py`)
+- **Gate:** If Kronos/FinText can't beat this, something is wrong
+
+**Baseline B: `momentum_composite` (stronger but transparent)**
+- Equal-weight rank average: `(mom_1m + mom_3m + mom_6m + mom_12m) / 4`
+- Often materially stronger than single-horizon momentum
+- Still no ML, still transparent
+- **Gate:** Realistic bar for "is ML worth it?"
+
+**Baseline C: `short_term_strength` (diagnostic baseline)**
+- Rank by `mom_1m` or `rel_strength_1m`
+- Often weak in mean-reversion regimes
+- **Purpose:** Diagnostic for horizon sensitivity
+  - If it beats you in certain windows → evaluation is telling you something
+  - If you can't beat it → may be penalizing longer-horizon signals
+
+**+ 1 sanity baseline (not a target):**
+- **`naive_random`**: Deterministic random scores (sanity check: RankIC ≈ 0, confirms no systematic bias in evaluation pipeline)
+
+**Critical Guardrail:**
+All baselines run through **identical pipeline:**
+- Same universe snapshots (stable_id)
+- Same missingness handling
+- Same neutralization setting (raw or sector/beta-neutral)
+- Same cost diagnostic treatment (6.4)
+- Same purging/embargo
+- Same walk-forward splits
+
+**Why these 3?**
+- Cover naive (A), strong (B), diagnostic (C)
+- All use existing features (no new dependencies)
+- Prevent "baseline shopping" (temptation to add weak baselines)
+
+### Top-K Definition (Churn & Hit Rate)
+
+**Primary: Top-10**
+- Matches "forecaster" product narrative (shortlist)
+- Churn is interpretable ("did the list change?")
+- Stable enough for month-to-month comparison
+- Aligns with concentrated portfolio construction
+
+**Secondary: Top-20 (fixed K)**
+- Robustness check for universe size changes
+- Simpler than percentage-based (no dynamic computation)
+- Still interpretable
+
+**Alternative Secondary: Top-10% (percentage-based)**
+- More robust to universe size changes over time
+- Use this if universe size varies significantly (e.g., 80-150 stocks)
+
+**Locked Definitions:**
+
+**Churn (overlap-based):**
+```python
+# Jaccard similarity between consecutive Top-K
+churn = 1 - len(set(top_k_t) & set(top_k_t_minus_1)) / len(set(top_k_t) | set(top_k_t_minus_1))
+
+# Or simpler: % retained
+retention = len(set(top_k_t) & set(top_k_t_minus_1)) / K
+churn = 1 - retention
+```
+
+**Hit Rate (excess return):**
+```python
+# Definition: % of Top-K portfolios with excess return > 0 over horizon
+hit = (top_k_portfolio_return_t_to_t_plus_H - benchmark_return_t_to_t_plus_H) > 0
+hit_rate = hits / total_rebalances
+```
+
+**Alternative:** Top-K beats equal-weight universe (use if preferred for interpretability)
+
+**Target Metrics:**
+- Churn: < 30% month-over-month (exploitable without excessive turnover)
+- Hit Rate: > 55% (better than coin flip, realistic for noisy markets)
+
+---
+
+## 6.2 Qlib Integration (Shadow Evaluator)
 
 **Qlib Integration (Shadow Evaluator):**
 - [x] **Qlib as optional evaluator** (NOT replacing Chapters 1-5 infrastructure)
@@ -1217,17 +1501,515 @@ results = neutralization_report(
   - Experiment tracking: Recorder system for walk-forward folds
 - **Reference:** [Qlib Documentation](https://qlib.readthedocs.io/en/latest/), [GitHub](https://github.com/microsoft/qlib)
 
-**Walk-Forward Tasks:**
-- [ ] Re-run walk-forward once universe is survivorship-safe
-- [ ] Confirm performance doesn't depend on survivorship bias
-- [ ] Add diagnostics for signals that break under constraints (borrow/short crowding)
-- [ ] Purging & embargo (gap between train/test)
-- [ ] Ranking metrics (top-N hit rate, rank correlation)
-- [ ] **Apply time-decay weighting** during training (`src/features/time_decay.py`)
-- [ ] Use horizon-specific half-lives: 2.5y (20d), 3.5y (60d), 4.5y (90d)
-- [ ] Per-date normalization for cross-sectional ranking loss
-- [ ] Use Qlib for standardized evaluation reports (IC, quintile spread, churn)
-- [ ] Use Qlib's Recorder for experiment tracking across folds
+---
+
+## 6.1.2 Implementation Status ✅ PHASE 0, 1, 1.5 COMPLETE
+
+**Implemented Files:**
+- `src/evaluation/__init__.py` - Module initialization with all exports
+- `src/evaluation/definitions.py` - **CANONICAL DEFINITIONS (single source of truth)**
+- `src/evaluation/walk_forward.py` - **WalkForwardSplitter with ENFORCED purging & embargo**
+- `src/evaluation/sanity_checks.py` - IC parity test & experiment naming
+- `tests/test_definitions.py` - 40 tests for canonical definitions
+- `tests/test_walk_forward.py` - 25 tests verifying purging and embargo
+- `tests/test_sanity_checks.py` - 16 tests verifying sanity checks
+
+**Total: 65/65 tests passing**
+
+### ✅ Phase 1.5: Definition Lock (ENFORCED)
+
+All time conventions are now locked in `src/evaluation/definitions.py`:
+
+```python
+from src.evaluation import (
+    TIME_CONVENTIONS,     # horizons, embargo, pricing, maturity rule
+    EMBARGO_RULES,        # per-row-per-horizon purging rules
+    ELIGIBILITY_RULES,    # all-horizons-valid requirement
+    trading_days_to_calendar_days,  # CONSERVATIVE conversion
+    get_market_close_utc,           # UTC datetime for maturity checks
+)
+
+# All of these are FROZEN (cannot be modified at runtime)
+assert TIME_CONVENTIONS.embargo_trading_days == 90  # TRADING DAYS
+assert EMBARGO_RULES.purging_granularity == "per_row_per_horizon"
+assert ELIGIBILITY_RULES.allow_partial_horizons == False
+```
+
+### ✅ WalkForwardSplitter (ENFORCED, not just documented)
+
+```python
+from src.evaluation import WalkForwardSplitter
+
+splitter = WalkForwardSplitter(
+    eval_start=date(2016, 1, 1),
+    eval_end=date(2025, 6, 30),
+    rebalance_freq="monthly",
+    embargo_trading_days=90,  # TRADING DAYS (raises ValueError if < 90)
+)
+
+folds = splitter.generate_folds(
+    labels_df, 
+    horizons=[20, 60, 90],
+    require_all_horizons=True  # End-of-sample eligibility enforced
+)
+
+for fold in folds:
+    train_df = fold.filter_labels(labels_df, split="train")
+    val_df = fold.filter_labels(labels_df, split="val")
+    # Guarantees:
+    # ✅ Embargo: 90+ TRADING DAYS between train_end and val_start
+    # ✅ Purging: Per-row-per-horizon (not global)
+    # ✅ Maturity: label_matured_at <= cutoff_close_utc
+    # ✅ Eligibility: All horizons valid (no partial)
+```
+
+**CRITICAL Anti-Leakage Enforcement:**
+
+1. **Embargo (TRADING DAYS, not calendar):**
+   - `embargo_trading_days` parameter explicit
+   - Converted conservatively to calendar days: `trading_days * 1.45 + 1`
+   - Raises `ValueError` if < 90
+
+2. **Purging (Per-Row-Per-Horizon):**
+   - Each (date, ticker, horizon) evaluated independently
+   - Train rule: Purge if T + H > train_end
+   - Val rule: Purge if T - H < train_end
+   - NOT a global rule that "happens to work"
+
+3. **Maturity (UTC Market Close):**
+   - Uses `get_market_close_utc(date)` for cutoff
+   - Naive datetimes REJECTED
+   - Timezone-aware comparison enforced
+
+4. **End-of-Sample (All Horizons Valid):**
+   - `require_all_horizons=True` by default
+   - Dates missing any horizon are EXCLUDED
+   - Prevents silent horizon dropout
+
+### ✅ Sanity Checks (6.0)
+```python
+from src.evaluation import verify_ic_parity, ExperimentNameBuilder
+
+# Sanity Check 1: IC Parity
+result = verify_ic_parity(predictions, labels, qlib_ic=0.045, tolerance=0.001)
+# Raises ValueError if |manual_ic - qlib_ic| > tolerance
+
+# Sanity Check 2: Experiment Naming
+builder = ExperimentNameBuilder(
+    horizon=20,
+    model="kronos_v0",
+    label_version="v2",
+    fold_id="fold_01"
+)
+exp_name = builder.build()
+# Returns: "ai_forecaster/horizon=20/model=kronos_v0/labels=v2_totalreturn/fold=fold_01"
+```
+
+**Test Results:**
+- ✅ 40 definition tests pass (constants, frozen dataclasses, UTC conversions)
+- ✅ 25 walk-forward tests pass (embargo, purging, maturity, eligibility)
+- ✅ 16 sanity check tests pass (IC parity, experiment naming)
+
+---
+
+## 6.3 Metrics Implementation ✅ COMPLETE
+
+### Canonical Evaluation Data Contract
+
+All models and baselines MUST produce standardized `EvaluationRow` format:
+
+**Required Fields:**
+- `as_of_date`, `ticker`, `stable_id`, `horizon`, `fold_id`
+- `score` (higher = better)
+- `excess_return` (v2 total return vs benchmark)
+
+**Rules (LOCKED):**
+1. Score direction: Higher = better
+2. Duplicates: NOT ALLOWED per (as_of_date, stable_id, horizon)
+3. Missing score/return: Row DROPPED (logged)
+4. Tie-breaking: Deterministic via stable_id sorting
+5. Minimum cross-section: 10 stocks per date
+
+### Core Metrics Implemented
+
+| Metric | Formula | Aggregation |
+|--------|---------|-------------|
+| **RankIC** | Spearman(rank(score), rank(return)) | Per-date → Median |
+| **Quintile Spread** | mean(top 20%) - mean(bottom 20%) | Per-date → Median |
+| **Top-K Hit Rate** | % with excess_return > 0 | Per-date → Median |
+| **Top-K Avg ER** | mean(excess_return of Top-K) | Per-date → Median |
+| **Churn** | 1 - (overlap / K) | Consecutive dates → Median |
+
+### Churn (ENFORCED Rules)
+
+- Uses `stable_id` (not ticker) to avoid rename noise
+- Computed only on consecutive dates within fold
+- NOT across fold boundaries
+- Top-10 (primary), Top-20 (secondary)
+- Target: < 30%
+
+### Regime Slicing (LOCKED Definitions)
+
+Using existing regime features only:
+
+```python
+REGIME_DEFINITIONS = {
+    "vix_percentile_252d": {
+        "low": <= 33, "mid": (33, 67], "high": > 67
+    },
+    "market_regime": {
+        "bull": market_return_20d > 0,
+        "bear": market_return_20d <= 0
+    }
+}
+```
+
+### Implementation Status
+
+| Component | Lines | Tests | Status |
+|-----------|-------|-------|--------|
+| `src/evaluation/metrics.py` | 606 | 30 | ✅ |
+
+**Test Coverage:** 30/30 passing
+- Tie-breaking deterministic ✅
+- Perfect correlation → RankIC ≈ 1 ✅
+- Random scores → RankIC ≈ 0 ✅
+- Churn matches hand-calculated ✅
+- Regime slicing preserves counts ✅
+
+---
+
+## 6.4 Cost Realism ✅ COMPLETE
+
+**Purpose:** Diagnostic overlay to answer "does alpha survive trading costs?"
+
+### Philosophy
+
+- Costs affect portfolio metrics (Top-K, spreads), NOT RankIC
+- RankIC measures ranking skill; costs measure implementability
+- Use sensitivity bands (low/base/high), not one "true" value
+- Answer "does it survive?" without pretending we know exact slippage
+
+### Locked Trading Assumptions
+
+```python
+from src.evaluation import TRADING_ASSUMPTIONS
+
+# Portfolio Definition
+K = 10 (primary), 20 (secondary)  # Top-K equal-weight, long-only
+Rebalance: on as-of close (first trading day of month/quarter)
+Turnover: weight changes between consecutive rebalances (stable_id)
+
+# AUM Assumptions (for ADV scaling)
+AUM = $1M (primary), $10M (secondary)
+
+# Cost Model
+Base Cost: 20 bps round-trip (10 bps entry + 10 bps exit)
+  └─ Always applied to liquid large caps
+
+Slippage: c * sqrt(participation_rate)
+  └─ participation_rate = trade_value / adv_dollars
+  └─ c = {5 (low), 10 (base), 20 (high)}
+  └─ Floor: 0 bps, Cap: 500 bps
+
+Missing ADV: 100 bps penalty (conservative)
+```
+
+### Cost Model Function
+
+**Square-root impact model** (standard in market microstructure):
+
+```python
+slippage_bps = c * sqrt(trade_value / adv_dollars)
+total_cost_bps = base_cost_bps + slippage_bps
+```
+
+**Properties:**
+- Monotone: Higher participation → higher cost
+- Concave: Diminishing marginal impact
+- Empirically validated
+- Simple and transparent
+
+### Net-of-Cost Metrics
+
+```python
+from src.evaluation import compute_portfolio_costs, compute_net_metrics
+
+# Compute costs for one rebalance date
+costs = compute_portfolio_costs(
+    df=eval_df,  # EvaluationRow format
+    k=10,
+    aum=1_000_000,
+    slippage_coef=10.0,  # Base scenario
+    prev_portfolio=None  # For turnover tracking
+)
+
+# Net metrics
+net = compute_net_metrics(
+    gross_metrics={"avg_excess_return": 0.05},
+    cost_pct=costs["total_cost_pct"]
+)
+
+# Result
+net["gross_avg_er"]   # 5.0%
+net["cost_pct"]        # 0.2% (20 bps)
+net["net_avg_er"]      # 4.8%
+net["alpha_survives"]  # True (net > 0)
+```
+
+### Sensitivity Analysis
+
+Run each fold/horizon under 4 scenarios:
+
+| Scenario | Base Cost | Slippage Coef | Description |
+|----------|-----------|---------------|-------------|
+| base_only | 20 bps | 0 | Base cost only (no slippage) |
+| low_slippage | 20 bps | 5 | Optimistic slippage |
+| base_slippage | 20 bps | 10 | Expected slippage |
+| high_slippage | 20 bps | 20 | Conservative slippage |
+
+**Report per horizon:**
+- % folds with net Top-K avg ER > 0
+- Median net Top-K avg ER
+- Where it breaks (small ADV names, specific regimes)
+
+### Enforced Invariants (Tests)
+
+✅ Zero turnover → minimal costs
+✅ Lower ADV → higher costs (monotonicity)
+✅ Higher AUM → higher costs (monotonicity)
+✅ Deterministic results (same inputs → same outputs)
+✅ ADV missing → conservative penalty
+
+### Implementation Status
+
+| Component | Lines | Tests | Status |
+|-----------|-------|-------|--------|
+| `src/evaluation/costs.py` | 514 | 28 | ✅ |
+
+**Test Coverage:** 28/28 passing
+- Frozen trading assumptions ✅
+- Square-root impact law ✅
+- Monotonicity (ADV, AUM) ✅
+- Turnover calculation ✅
+- Net metrics computation ✅
+- Determinism ✅
+
+**Total Chapter 6 Tests:** 123/123 passing (40 definitions + 25 walk-forward + 30 metrics + 28 costs)
+
+---
+
+## 6.5 Stability Reports ✅ COMPLETE
+
+**Purpose:** Pure consumer of 6.3 metrics + 6.4 costs → deterministic reporting artifacts.
+
+**Philosophy:** NO new APIs, NO new features, NO new modeling. Just clean rendering.
+
+### Locked Reporting Parameters
+
+```python
+from src.evaluation import STABILITY_THRESHOLDS
+
+# IC Decay Thresholds
+rapid_decay_threshold = 0.05  # Late IC drops > 5% vs early
+noisy_threshold = 2.0  # IQR / median > 2.0
+
+# Churn Thresholds
+high_churn_threshold = 0.50  # >50% turnover = unstable
+
+# Coverage Requirements
+min_dates_per_bucket = 10  # Regime slices
+min_names_per_date = 10  # Cross-section minimum
+
+# Rolling Window
+rolling_window = 6  # 6-month for monthly cadence
+```
+
+### Report Contract
+
+**Inputs (must already exist):**
+- Per-date RankIC series (from `evaluate_fold`)
+- Per-date quintile spread series
+- Per-date Top-K metrics + churn
+- Regime-sliced summaries
+- Cost overlays (turnover, gross vs net, sensitivity bands)
+
+**Outputs (deterministic artifacts):**
+- `tables/` (CSV): ic_decay_stats, regime_performance, churn_diagnostics, stability_scorecard
+- `figures/` (PNG): ic_decay, regime_bars, churn_timeseries, churn_distribution
+- `REPORT_SUMMARY.md`: Human-readable summary
+
+### Components Implemented
+
+**A) IC Decay Analysis**
+```python
+from src.evaluation import compute_ic_decay_stats, plot_ic_decay
+
+# Compute early vs late stats
+stats = compute_ic_decay_stats(per_date_metrics, metric_col="rankic")
+
+# Results: early_median, late_median, decay, rapid_decay_flag, noisy_flag
+```
+
+**B) Regime-Conditional Performance**
+```python
+from src.evaluation import format_regime_performance, plot_regime_bars
+
+# Format with coverage stats
+formatted = format_regime_performance(regime_summaries)
+
+# Add thin_slice_flag for insufficient coverage
+```
+
+**C) Churn Diagnostics**
+```python
+from src.evaluation import compute_churn_diagnostics
+
+# Summary per fold/horizon/k
+diag = compute_churn_diagnostics(churn_series)
+
+# Results: churn_median, churn_p90, pct_high_churn, high_churn_flag
+```
+
+**D) Stability Scorecard**
+```python
+from src.evaluation import generate_stability_scorecard
+
+# One-screen summary
+scorecard = generate_stability_scorecard(
+    fold_summaries,
+    churn_diagnostics=churn_diag,
+    cost_overlays=cost_overlays
+)
+
+# The thing you paste into your Chapter 6 writeup
+```
+
+**E) Full Report Generation**
+```python
+from src.evaluation import generate_stability_report, StabilityReportInputs
+
+inputs = StabilityReportInputs(
+    per_date_metrics=per_date_df,
+    fold_summaries=fold_summary_df,
+    regime_summaries=regime_df,
+    churn_series=churn_df,
+    cost_overlays=cost_df
+)
+
+outputs = generate_stability_report(
+    inputs,
+    experiment_name="kronos_v0_h20_m",
+    output_dir=Path("reports")
+)
+
+# Outputs: tables/, figures/, REPORT_SUMMARY.md
+```
+
+### Enforced Invariants (Tests)
+
+✅ **Determinism**: Same inputs (shuffled) → identical outputs
+✅ **Fold boundaries**: Churn never bridges folds
+✅ **Regime bucket integrity**: Totals sum correctly
+✅ **No silent drops**: Exclusions are logged
+✅ **Thin slice detection**: Flags insufficient coverage
+✅ **Rapid decay detection**: Flags early vs late drops
+✅ **High churn detection**: Flags unstable rankings
+
+### Implementation Status
+
+| Component | Lines | Tests | Status |
+|-----------|-------|-------|--------|
+| `src/evaluation/reports.py` | 768 | 24 | ✅ |
+
+**Test Coverage:** 24/24 passing
+- Frozen thresholds ✅
+- IC decay statistics ✅
+- Regime performance formatting ✅
+- Churn diagnostics ✅
+- Stability scorecard ✅
+- Full report generation ✅
+- Determinism enforcement ✅
+- Fold boundary handling ✅
+- Regime integrity checks ✅
+- Exclusion logging ✅
+
+**Total Chapter 6 Tests:** 147/147 passing (40 definitions + 25 walk-forward + 30 metrics + 28 costs + 24 reports)
+
+---
+
+## 6.6 Walk-Forward Tasks
+
+**Phase 0, 1, 1.5, 2, 4, 5, 6: ✅ IMPLEMENTATION COMPLETE**
+
+### Implementation Status (Code + Tests)
+- [x] **Complete 6.0 sanity checks** (IC parity, experiment naming) ✅
+- [x] **Implement walk-forward splitter** (purging & embargo ENFORCED) ✅
+- [x] **Definition lock** (canonical time conventions) ✅
+- [x] **Implement metrics** (RankIC, churn, hit rate, regime slicing) ✅
+- [x] **Implement cost realism** (trading costs, slippage, net metrics) ✅
+- [x] **Implement stability reports** (IC decay, regime performance, churn diagnostics) ✅
+- [x] **Implement baselines** (mom_12m, momentum_composite, short_term_strength, naive_random) ✅
+- [x] **Create end-to-end runner** (run_evaluation.py) ✅
+- [x] **Create Qlib adapter** (shadow evaluator) ✅
+- [x] **Write comprehensive tests** (269 evaluation tests, all passing) ✅
+
+**Total Tests:** 413/413 passing (100%)
+
+### Execution Status ✅ CLOSED & FROZEN
+- [x] **Execute FULL_MODE baseline run** (2016-2025, monthly + quarterly, all 4 baselines) ✅
+- [x] **Freeze baseline reference** (commit hash + output directory) ✅
+- [x] **Produce baseline floor summary** (best baseline per horizon) ✅
+- [x] **Verify sanity baseline** (naive_random RankIC ≈ 0) ✅
+
+### Real Data Infrastructure ✅
+- [x] **DuckDB feature store** (`data/features.duckdb`) - build from FMP
+- [x] **Data loader** supports synthetic and DuckDB modes
+- [x] **Closure script** defaults to real data, fails loudly if missing
+- [x] **24 new tests** for DuckDB loader (no live FMP calls)
+
+### How to Build Real Data Feature Store
+```bash
+# Set FMP API key (Premium required)
+export FMP_KEYS="your_fmp_premium_api_key"
+
+# Build DuckDB (downloads data, computes features/labels)
+python scripts/build_features_duckdb.py
+
+# Run real-data Chapter 6 closure
+python scripts/run_chapter6_closure.py
+# Outputs: evaluation_outputs/chapter6_closure_real/
+```
+
+### Why FULL_MODE Matters
+The acceptance criteria (RankIC lift, net-positive folds, churn, regime robustness) can only be verified with actual numbers from a full run. The FULL_MODE baseline run becomes the **immovable reference** for all Chapter 7+ model comparisons.
+
+```bash
+# To execute FULL_MODE baseline run:
+python -m src.evaluation.run_evaluation --mode full --output-dir evaluation_outputs
+
+# Or programmatically:
+for baseline in list_baselines():
+    spec = ExperimentSpec.baseline(baseline, cadence="monthly")
+    run_experiment(spec, features_df, Path("evaluation_outputs"), FULL_MODE)
+```
+
+### Chapter 6 Closure Checklist ✅ COMPLETE
+
+- [x] FULL_MODE run completes without errors (REAL DuckDB data)
+- [x] All 4 baselines produce outputs for all 3 horizons (mom_12m, momentum_composite, short_term_strength, naive_random)
+- [x] stability_scorecard.csv generated for each baseline (8 runs: 4 baselines x 2 cadences)
+- [x] cost_overlays.csv includes all 4 scenarios (base_only, low/base/high_slippage)
+- [x] BASELINE_REFERENCE.md documents baseline floor metrics + usage instructions
+- [x] Commit hash frozen as reference point (18bad8a + 7e6fa3a)
+- [x] Outputs directory tracked in git (evaluation_outputs/chapter6_closure_real/)
+- [x] Data snapshot frozen (data_hash: 5723d4c88b8ecba1..., 192,307 rows, 2016-2025)
+- [x] Sanity check passed (naive_random RankIC ≈ 0)
+- [x] Qlib shadow evaluation completed and verified
+- [x] Critical bugs fixed (per-horizon metrics, baseline floor paths, fold date alignment, Qlib inputs)
+
+**Freeze Date:** December 30, 2025  
+**See:** `CHAPTER_6_FREEZE.md` for complete details
 
 ### Chapter 11/12: Fusion + Regime-Aware Ensembling
 
@@ -1295,9 +2077,10 @@ The "full" endpoint doesn't have a separate `adj_close` column because the `clos
 
 ## API Keys & Configuration
 
-**Required in `.env`:**
+**Required in `.env`** (in repository root):
 ```env
 # Financial Modeling Prep (required for main data)
+# Premium key required for 30-year history and QQQ benchmark
 FMP_KEYS=your_fmp_api_key
 
 # Alpha Vantage (optional - for earnings calendar)
@@ -1307,10 +2090,73 @@ ALPHAVANTAGE_KEYS=your_alphavantage_key
 SEC_CONTACT_EMAIL=your_email@domain.com
 ```
 
+**Key Loading (auto-loaded from `.env`):**
+
+Scripts automatically load `.env` from the repository root. No need to manually export variables.
+
+**Key Precedence (highest to lowest):**
+1. CLI argument: `--api-key YOUR_KEY`
+2. Environment variable: `FMP_KEYS` (comma-separated, uses first)
+3. Environment variable: `FMP_API_KEY` (fallback)
+4. `.env` file in repo root (auto-loaded)
+
+**Security:**
+- Keys are NEVER logged
+- Only the source used is logged (e.g., "Using FMP_KEYS")
+
 **Get API Keys:**
-- FMP: https://financialmodelingprep.com/developer/docs/pricing
+- FMP: https://financialmodelingprep.com/developer/docs/pricing (Premium required)
 - Alpha Vantage: https://www.alphavantage.co/support/#api-key
 - SEC: No key needed, just provide contact email
+
+### How to Build `data/features.duckdb`
+
+The DuckDB feature store is required for real-data Chapter 6 closure:
+
+```bash
+# Option 1: Using .env (recommended)
+# Put your key in .env file, then run:
+python scripts/build_features_duckdb.py
+
+# Option 2: Using CLI argument
+python scripts/build_features_duckdb.py --api-key YOUR_FMP_KEY
+
+# Option 3: Using environment variable
+export FMP_KEYS='your_key'
+python scripts/build_features_duckdb.py
+
+# Dry run (validate setup without downloading)
+python scripts/build_features_duckdb.py --dry-run
+```
+
+**Output:**
+- `data/features.duckdb` - DuckDB feature store (NOT committed to git)
+- `data/DATA_MANIFEST.json` - Metadata (row counts, date range, data hash)
+- `data/cache/fmp/` - Cached API responses
+
+### How to Run Real Chapter 6 Closure
+
+After building the DuckDB feature store:
+
+```bash
+# Run with real data (default if data/features.duckdb exists)
+python scripts/run_chapter6_closure.py
+
+# Smoke test (quick verification)
+python scripts/run_chapter6_closure.py --smoke
+
+# Synthetic data only (for pipeline testing)
+python scripts/run_chapter6_closure.py --mode synthetic
+```
+
+**Output directories:**
+- Real data: `evaluation_outputs/chapter6_closure_real/`
+- Synthetic data: `evaluation_outputs/chapter6_closure_synth/`
+
+**Key artifacts:**
+- `BASELINE_FLOOR.json` - Frozen baseline performance metrics
+- `BASELINE_REFERENCE.md` - Human-readable baseline reference
+- `CLOSURE_MANIFEST.json` - Commit hash, data hash, environment
 
 ---
 
