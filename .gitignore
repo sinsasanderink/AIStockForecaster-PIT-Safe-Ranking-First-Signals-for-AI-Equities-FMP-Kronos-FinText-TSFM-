@@ -91,3 +91,4 @@ htmlcov/
 !models/.gitkeep
 !outputs/.gitkeep
 
+data/
