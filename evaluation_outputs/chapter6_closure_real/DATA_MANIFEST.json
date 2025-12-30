@@ -1,0 +1,42 @@
+{
+  "generated_at": "2025-12-30T05:24:45.076833Z",
+  "data": {
+    "source": "duckdb",
+    "db_path": "data/features.duckdb",
+    "schema_version": "1.0.0",
+    "build_timestamp": "2025-12-30T04:33:21.312404Z",
+    "n_rows": 192307,
+    "n_dates": 2296,
+    "n_stocks": 100,
+    "horizons": [
+      20,
+      60,
+      90
+    ],
+    "date_range": {
+      "min": "2016-01-04T00:00:00",
+      "max": "2025-02-19T00:00:00"
+    },
+    "db_data_hash": "a6142358f0e9ac5701092e51a34058fd0bdf249aa945fd726143d98e177a3607",
+    "label_format": "wide",
+    "data_hash": "5723d4c88b8ecba1965d8eee05a871d114f985537998247643e5bc40606d9a40"
+  },
+  "environment": {
+    "python_version": "3.11.5 (main, Sep 11 2023, 08:19:27) [Clang 14.0.6 ]",
+    "platform": "macOS-26.1-x86_64-i386-64bit"
+  },
+  "validation": {
+    "valid": true,
+    "issues": [],
+    "warnings": [
+      "Data starts after evaluation range: 2016-01-04 > 2016-01-01",
+      "Data ends before evaluation range: 2025-02-19 < 2025-06-30"
+    ],
+    "stats": {
+      "n_rows": 192307,
+      "n_dates": 2296,
+      "n_stocks": 100,
+      "unique_date_ticker": 192307
+    }
+  }
+}

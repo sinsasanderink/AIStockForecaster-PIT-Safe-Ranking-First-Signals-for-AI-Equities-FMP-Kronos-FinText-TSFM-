@@ -1,0 +1,17 @@
+{
+  "experiment_name": "baseline_short_term_strength_monthly",
+  "model_type": "baseline",
+  "model_name": "short_term_strength",
+  "horizons": [
+    20,
+    60,
+    90
+  ],
+  "cadence": "monthly",
+  "mode": "full",
+  "eval_start": "2016-01-01",
+  "eval_end": "2025-06-30",
+  "n_folds": 109,
+  "n_eval_rows": 591216,
+  "generated_at": "2025-12-30T00:31:39.696475"
+}

@@ -1,0 +1,311 @@
+{
+  "chapter": "6",
+  "type": "closure_reference",
+  "generated_at": "2025-12-30T05:45:21.185964Z",
+  "git": {
+    "commit_hash": "bf2cf8e0e74a62100ac15314eaf74cbf4decbac0",
+    "has_uncommitted_changes": true,
+    "branch": "main"
+  },
+  "environment": {
+    "python_version": "3.11.5 (main, Sep 11 2023, 08:19:27) [Clang 14.0.6 ]",
+    "platform": "macOS-26.1-x86_64-i386-64bit",
+    "pip_packages": [
+      "aiofiles==24.1.0",
+      "aiohttp @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_87_f9ghg_u/croot/aiohttp_1715110796952/work",
+      "aiosignal @ file:///tmp/build/80754af9/aiosignal_1637843061372/work",
+      "alembic==1.17.0",
+      "alpaca-trade-api==3.2.0",
+      "anaconda-anon-usage @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_2c907yrj_5/croot/anaconda-anon-usage_1695305100095/work",
+      "anaconda-catalogs @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_737qok84ed/croot/anaconda-catalogs_1685727302903/work",
+      "anaconda-client @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_62r593g_27/croot/anaconda-client_1694625255058/work",
+      "anaconda-project @ file:///Users/ec2-user/ci_py311/anaconda-project_1678395481364/work",
+      "annotated-types==0.7.0",
+      "anyio==4.11.0",
+      "appdirs==1.4.4",
+      "appnope @ file:///Users/ec2-user/ci_py311/appnope_1678317440516/work",
+      "archspec @ file:///croot/archspec_1709217642129/work",
+      "argon2-cffi==25.1.0",
+      "argon2-cffi-bindings==25.1.0",
+      "arrow==1.3.0",
+      "asttokens @ file:///opt/conda/conda-bld/asttokens_1646925590279/work",
+      "async-lru==2.0.5",
+      "attrs==23.2.0",
+      "Authlib==1.6.5",
+      "autopep8==2.3.2",
+      "babel==2.17.0",
+      "backports.functools-lru-cache @ file:///tmp/build/80754af9/backports.functools_lru_cache_1618170165463/work",
+      "backports.tempfile @ file:///home/linux1/recipes/ci/backports.tempfile_1610991236607/work",
+      "backports.weakref==1.0.post1",
+      "beautifulsoup4 @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_bczxn9gqkq/croot/beautifulsoup4-split_1681493044307/work",
+      "bleach==6.2.0",
+      "blinker==1.9.0",
+      "bokeh @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_f0qjy344kx/croot/bokeh_1712084348425/work",
+      "boltons @ file:///Users/ec2-user/ci_py311/boltons_1678396074811/work",
+      "Bottleneck @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_cfe9itj_y_/croot/bottleneck_1707864223016/work",
+      "Brotli==1.1.0",
+      "cachetools==6.2.1",
+      "certifi @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_d0mlk2yciq/croot/certifi_1738623741969/work/certifi",
+      "cffi @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_229m2kq9fi/croot/cffi_1714483160856/work",
+      "chardet @ file:///Users/ec2-user/ci_py311/chardet_1678326102860/work",
+      "charset-normalizer @ file:///tmp/build/80754af9/charset-normalizer_1630003229654/work",
+      "clarabel==0.11.1",
+      "click @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_f27dk3zwrb/croot/click_1698129816363/work",
+      "cloudpickle @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_c57ujq_pgm/croot/cloudpickle_1683040025620/work",
+      "clyent==1.2.2",
+      "comm @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_aef2nlxc2o/croot/comm_1709322866518/work",
+      "conda @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_42pbo0z1zj/croot/conda_1736277824091/work",
+      "conda-build @ file:///private/var/folders/c_/qfmhj66j0tn016nkx_th4hxm0000gp/T/abs_12u_nhlt3j/croot/conda-build_1716991302653/work",
+      "conda-content-trust @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_3dvkcnnrtu/croot/conda-content-trust_1693490624887/work",
+      "conda-libmamba-solver @ file:///croot/conda-libmamba-solver_1706733287605/work/src",
+      "conda-pack @ file:///tmp/build/80754af9/conda-pack_1611163042455/work",
+      "conda-package-handling @ file:///private/var/folders/sy/f16zz6x50xz3113nwtb9bvq00000gp/T/abs_99vcqjo8cf/croot/conda-package-handling_1690999935230/work",
+      "conda-token @ file:///Users/paulyim/miniconda3/envs/c3i/conda-bld/conda-token_1662660369760/work"
+    ]
+  },
+  "data": {
+    "source": "duckdb",
+    "db_path": "data/features.duckdb",
+    "schema_version": "1.0.0",
+    "build_timestamp": "2025-12-30T04:33:21.312404Z",
+    "n_rows": 192307,
+    "n_dates": 2296,
+    "n_stocks": 100,
+    "horizons": [
+      20,
+      60,
+      90
+    ],
+    "date_range": {
+      "min": "2016-01-04T00:00:00",
+      "max": "2025-02-19T00:00:00"
+    },
+    "db_data_hash": "a6142358f0e9ac5701092e51a34058fd0bdf249aa945fd726143d98e177a3607",
+    "label_format": "wide",
+    "data_hash": "5723d4c88b8ecba1965d8eee05a871d114f985537998247643e5bc40606d9a40"
+  },
+  "baselines": {
+    "count": 8,
+    "factor_baselines": [
+      "mom_12m",
+      "momentum_composite",
+      "short_term_strength"
+    ],
+    "sanity_baselines": [
+      "naive_random"
+    ],
+    "cadences": [
+      "monthly",
+      "quarterly"
+    ],
+    "sanity_passed": true
+  },
+  "baseline_floor": {
+    "computed_at": "2025-12-30T05:45:04.775669Z",
+    "horizons": {
+      "20": {
+        "mom_12m_monthly": {
+          "median_rankic": 0.028340337373814493,
+          "quintile_spread": 0.00354382027931786,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.012515822202278782,
+          "n_folds": 109
+        },
+        "momentum_composite_monthly": {
+          "median_rankic": 0.015283638068448195,
+          "quintile_spread": 0.003475831683625575,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.008386829912185373,
+          "n_folds": 109
+        },
+        "short_term_strength_monthly": {
+          "median_rankic": -0.0276272880286135,
+          "quintile_spread": -0.006594455526787201,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.003622669671513734,
+          "n_folds": 109
+        },
+        "mom_12m_quarterly": {
+          "median_rankic": 0.032922892135865266,
+          "quintile_spread": 0.005009510812755398,
+          "hit_rate_10": 0.55,
+          "avg_er_10": 0.027037335775197943,
+          "n_folds": 36
+        },
+        "momentum_composite_quarterly": {
+          "median_rankic": 0.017210327000902192,
+          "quintile_spread": 0.007067651738928132,
+          "hit_rate_10": 0.575,
+          "avg_er_10": 0.01830322691733786,
+          "n_folds": 36
+        },
+        "short_term_strength_quarterly": {
+          "median_rankic": -0.028653439350713822,
+          "quintile_spread": -0.007421730857276789,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.0059222286887177615,
+          "n_folds": 36
+        }
+      },
+      "60": {
+        "mom_12m_monthly": {
+          "median_rankic": 0.03534850640113798,
+          "quintile_spread": 0.024583497950032174,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.06292366008875622,
+          "n_folds": 109
+        },
+        "momentum_composite_monthly": {
+          "median_rankic": 0.03917496443812233,
+          "quintile_spread": 0.03701593252463473,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.05325657442407751,
+          "n_folds": 109
+        },
+        "short_term_strength_monthly": {
+          "median_rankic": -0.017705627705627704,
+          "quintile_spread": -0.0003379555598314772,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.035785894965196755,
+          "n_folds": 109
+        },
+        "mom_12m_quarterly": {
+          "median_rankic": 0.037942274752287584,
+          "quintile_spread": 0.033553610849409804,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.0756873863166514,
+          "n_folds": 36
+        },
+        "momentum_composite_quarterly": {
+          "median_rankic": 0.05663234368111897,
+          "quintile_spread": 0.046730396816358544,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.06698716010937801,
+          "n_folds": 36
+        },
+        "short_term_strength_quarterly": {
+          "median_rankic": 0.002494946283373046,
+          "quintile_spread": 0.001459832369592004,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.04312417714031483,
+          "n_folds": 36
+        }
+      },
+      "90": {
+        "mom_12m_monthly": {
+          "median_rankic": 0.007435517709490316,
+          "quintile_spread": 0.040147671204283294,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.08844849842681841,
+          "n_folds": 109
+        },
+        "momentum_composite_monthly": {
+          "median_rankic": 0.01687763713080169,
+          "quintile_spread": 0.037395268611893843,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.0881926509816903,
+          "n_folds": 109
+        },
+        "short_term_strength_monthly": {
+          "median_rankic": -0.001991488573384038,
+          "quintile_spread": -0.005130572386207399,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.04856736686677518,
+          "n_folds": 109
+        },
+        "mom_12m_quarterly": {
+          "median_rankic": 0.009490019062920386,
+          "quintile_spread": 0.032738712240456116,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.07116276828163906,
+          "n_folds": 36
+        },
+        "momentum_composite_quarterly": {
+          "median_rankic": 0.04586378254446574,
+          "quintile_spread": 0.05012407461875864,
+          "hit_rate_10": 0.6,
+          "avg_er_10": 0.061741624062288517,
+          "n_folds": 36
+        },
+        "short_term_strength_quarterly": {
+          "median_rankic": 0.002354683450573861,
+          "quintile_spread": 0.016559266149012316,
+          "hit_rate_10": 0.5,
+          "avg_er_10": 0.04725989334003067,
+          "n_folds": 36
+        }
+      }
+    },
+    "best_baseline_per_horizon": {
+      "20": {
+        "baseline": "mom_12m_monthly",
+        "median_rankic": 0.028340337373814493,
+        "quarterly_baseline": "mom_12m_quarterly",
+        "quarterly_rankic": 0.032922892135865266
+      },
+      "60": {
+        "baseline": "momentum_composite_monthly",
+        "median_rankic": 0.03917496443812233,
+        "quarterly_baseline": "momentum_composite_quarterly",
+        "quarterly_rankic": 0.05663234368111897
+      },
+      "90": {
+        "baseline": "momentum_composite_monthly",
+        "median_rankic": 0.01687763713080169,
+        "quarterly_baseline": "momentum_composite_quarterly",
+        "quarterly_rankic": 0.04586378254446574
+      }
+    },
+    "churn_medians": {
+      "20": {
+        "median": 0.0999999999999999,
+        "p90": 0.1999999999999999,
+        "n_observations": 13365
+      },
+      "60": {
+        "median": 0.0999999999999999,
+        "p90": 0.1999999999999999,
+        "n_observations": 13365
+      },
+      "90": {
+        "median": 0.0999999999999999,
+        "p90": 0.1999999999999999,
+        "n_observations": 13365
+      }
+    },
+    "cost_survival": {
+      "20": {
+        "pct_positive_folds": 0.0581039755351682,
+        "median_net_er": -0.0922911815187638,
+        "n_folds_evaluated": 327
+      },
+      "60": {
+        "pct_positive_folds": 0.25076452599388377,
+        "median_net_er": -0.0567037621034902,
+        "n_folds_evaluated": 327
+      },
+      "90": {
+        "pct_positive_folds": 0.40061162079510704,
+        "median_net_er": -0.0331857631079746,
+        "n_folds_evaluated": 327
+      }
+    },
+    "sanity_passed": true,
+    "primary_cadence": "monthly"
+  },
+  "qlib_shadow": {
+    "qlib_available": true,
+    "parity_checks": {},
+    "format_valid": true,
+    "shadow_outputs": "evaluation_outputs/chapter6_closure_real/qlib_shadow",
+    "status": "completed",
+    "n_eval_rows_used": 191034
+  },
+  "output_dir": "evaluation_outputs/chapter6_closure_real",
+  "artifacts": [
+    "DATA_MANIFEST.json",
+    "BASELINE_FLOOR.json",
+    "CLOSURE_MANIFEST.json",
+    "BASELINE_REFERENCE.md"
+  ]
+}

@@ -46,11 +46,17 @@ env/
 data/raw/
 data/processed/
 data/cache/
+data/features.duckdb
+data/*.duckdb
 *.csv
 *.parquet
 *.pkl
 *.pickle
 !requirements.txt
+
+# Evaluation outputs (large, regenerable) - except frozen reference artifacts
+evaluation_outputs/*
+!evaluation_outputs/chapter6_closure_real/
 
 # Models (large files)
 models/kronos/
