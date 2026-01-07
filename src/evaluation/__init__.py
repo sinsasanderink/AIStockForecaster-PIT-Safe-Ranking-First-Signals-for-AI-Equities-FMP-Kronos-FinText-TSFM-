@@ -67,6 +67,8 @@ from .baselines import (
     FACTOR_BASELINES,
     ML_BASELINES,
     SANITY_BASELINES,
+    DEFAULT_TABULAR_FEATURES,  # Chapter 7 frozen (13 features)
+    EXTENDED_TABULAR_FEATURES,  # Chapter 8+ expanded (50 features)
     generate_baseline_scores,
     generate_ml_baseline_scores,
     run_all_baselines,
@@ -176,6 +178,8 @@ __all__ = [
     "FACTOR_BASELINES",
     "ML_BASELINES",
     "SANITY_BASELINES",
+    "DEFAULT_TABULAR_FEATURES",  # Chapter 7 frozen (13 features)
+    "EXTENDED_TABULAR_FEATURES",  # Chapter 8+ expanded (50 features)
     "generate_baseline_scores",
     "generate_ml_baseline_scores",
     "run_all_baselines",

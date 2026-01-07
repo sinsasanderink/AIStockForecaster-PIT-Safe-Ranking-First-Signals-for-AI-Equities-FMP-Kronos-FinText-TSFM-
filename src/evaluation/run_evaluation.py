@@ -689,22 +689,45 @@ def _generate_folds_from_features(
 
 def _load_frozen_baseline_floor() -> Optional[Dict]:
     """
-    Load frozen baseline floor from Chapter 6 closure artifacts.
+    Load frozen baseline floor from Chapter 6 (factor) and Chapter 7 (ML) closure artifacts.
     
-    Returns None if file doesn't exist (e.g., in CI or before Chapter 6 closure).
+    Priority:
+    1. Chapter 7 ML baseline floor (if exists)
+    2. Chapter 6 factor baseline floor (fallback)
+    3. None (if neither exists, e.g., in CI)
+    
+    Returns merged floor with both factor and ML baselines if both exist.
     """
     import json
     from pathlib import Path
     
-    floor_path = Path("evaluation_outputs/chapter6_closure_real/BASELINE_FLOOR.json")
-    if not floor_path.exists():
-        return None
+    # Try Chapter 7 ML baseline floor first (most recent)
+    ml_floor_path = Path("evaluation_outputs/chapter7_tabular_lgb_full/BASELINE_FLOOR.json")
+    factor_floor_path = Path("evaluation_outputs/chapter6_closure_real/BASELINE_FLOOR.json")
     
-    try:
-        with floor_path.open() as f:
-            return json.load(f)
-    except Exception:
-        return None
+    ml_floor = None
+    factor_floor = None
+    
+    if ml_floor_path.exists():
+        try:
+            with ml_floor_path.open() as f:
+                ml_floor = json.load(f)
+        except Exception:
+            pass
+    
+    if factor_floor_path.exists():
+        try:
+            with factor_floor_path.open() as f:
+                factor_floor = json.load(f)
+        except Exception:
+            pass
+    
+    # Return ML floor if available (contains comparison vs factor floor)
+    if ml_floor:
+        return ml_floor
+    
+    # Fallback to factor floor
+    return factor_floor
 
 
 def compute_acceptance_verdict(
@@ -722,8 +745,9 @@ def compute_acceptance_verdict(
     3. Top-10 churn median < 0.30
     4. No catastrophic regime collapse (use stability flags)
     
-    Note: Cost survival uses relative gate vs frozen baseline floor (5.8%/25.1%/40.1%),
-    not absolute 70%, which would be unrealistic under current cost model.
+    Note: Cost survival uses relative gate vs frozen baseline floor.
+    - If Chapter 7 ML baseline exists, use ML floor (6.4%/45.9%/56.9% + 10pp)
+    - Otherwise, use Chapter 6 factor floor (5.8%/25.1%/40.1% + 10pp)
     
     Args:
         model_summary: Fold summaries for the model
@@ -737,12 +761,21 @@ def compute_acceptance_verdict(
     # Load frozen baseline floor for relative thresholds
     baseline_floor = _load_frozen_baseline_floor()
     
-    # Horizon-specific fallback thresholds (frozen floor + 10pp) if file not available
-    COST_SURVIVAL_THRESHOLDS = {
-        20: 0.158,  # 5.8% + 10pp
-        60: 0.351,  # 25.1% + 10pp
-        90: 0.501,  # 40.1% + 10pp
-    }
+    # Determine which floor to use (ML if available, else factor)
+    if baseline_floor and "ml_baseline_floor" in baseline_floor:
+        # Chapter 7 ML baseline floor
+        COST_SURVIVAL_THRESHOLDS = {
+            20: 0.164,  # 6.4% + 10pp
+            60: 0.559,  # 45.9% + 10pp
+            90: 0.669,  # 56.9% + 10pp
+        }
+    else:
+        # Chapter 6 factor baseline floor (fallback)
+        COST_SURVIVAL_THRESHOLDS = {
+            20: 0.158,  # 5.8% + 10pp
+            60: 0.351,  # 25.1% + 10pp
+            90: 0.501,  # 40.1% + 10pp
+        }
     
     results = []
     

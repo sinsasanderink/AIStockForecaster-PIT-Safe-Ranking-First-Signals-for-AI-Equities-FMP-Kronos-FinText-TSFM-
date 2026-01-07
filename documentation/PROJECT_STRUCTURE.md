@@ -92,12 +92,14 @@ AI_Stock_Forecast/
 │   │   ├── neutralization.py     # 5.8 Sector/beta/market neutral IC ✅
 │   │   └── feature_store.py      # DuckDB storage for computed features
 │   │
-│   ├── models/                   # Sections 7-12: Models (TODO)
-│   │   ├── baselines/            # Section 7: Baseline models
-│   │   ├── kronos/               # Section 8: Kronos module
-│   │   ├── fintext/              # Section 9: FinText-TSFM module
-│   │   ├── fusion/               # Section 11: Fusion model
-│   │   └── ensemble/             # Section 12: Regime-aware ensembling
+│   ├── models/                   # Sections 7-12: Models (READY FOR CH8)
+│   │   ├── __init__.py           # (to be created in Chapter 8)
+│   │   ├── kronos_adapter.py     # Section 8: Kronos TSFM adapter (TODO)
+│   │   ├── kronos_normalizer.py  # ReVIN normalization (TODO)
+│   │   ├── kronos_heads.py       # Horizon-specific heads (TODO)
+│   │   ├── fintext/              # Section 9: FinText-TSFM module (TODO)
+│   │   ├── fusion/               # Section 11: Fusion model (TODO)
+│   │   └── ensemble/             # Section 12: Regime-aware ensembling (TODO)
 │   │
 │   ├── evaluation/               # Section 6: Evaluation Framework ✅ FROZEN
 │   │   ├── __init__.py

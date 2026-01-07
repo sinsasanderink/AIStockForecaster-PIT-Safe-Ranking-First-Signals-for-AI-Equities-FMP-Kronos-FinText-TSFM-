@@ -129,7 +129,8 @@ SANITY_BASELINES = ["naive_random"]
 # ML BASELINE HELPERS (Chapter 7.3)
 # ============================================================================
 
-# Default features for tabular_lgb (can be extended in future)
+# FROZEN features for Chapter 7 tabular_lgb baseline (13 features)
+# DO NOT MODIFY - this is the frozen baseline feature set
 DEFAULT_TABULAR_FEATURES = [
     # Momentum
     "mom_1m", "mom_3m", "mom_6m", "mom_12m",
@@ -143,6 +144,55 @@ DEFAULT_TABULAR_FEATURES = [
     "rel_strength_1m", "rel_strength_3m",
     # Beta (if available)
     "beta_252d",
+]
+
+# EXTENDED features for Chapter 8+ models (50 features)
+# Includes all implemented feature categories
+EXTENDED_TABULAR_FEATURES = [
+    # =========================================================================
+    # PRICE & VOLUME (14 features)
+    # =========================================================================
+    # Momentum
+    "mom_1m", "mom_3m", "mom_6m", "mom_12m",
+    # Volatility
+    "vol_20d", "vol_60d", "vol_of_vol",
+    # Drawdown
+    "max_drawdown_60d", "dist_from_high_60d",
+    # Liquidity
+    "adv_20d", "adv_60d",
+    # Relative strength
+    "rel_strength_1m", "rel_strength_3m",
+    # Beta
+    "beta_252d",
+    
+    # =========================================================================
+    # FUNDAMENTALS (7 features) - Requires FMP Pro
+    # =========================================================================
+    "pe_zscore_3y", "pe_vs_sector", "ps_vs_sector",
+    "gross_margin_vs_sector", "revenue_growth_vs_sector",
+    "roe_zscore", "roa_zscore",
+    
+    # =========================================================================
+    # EVENTS & EARNINGS (12 features) - Critical for earnings gap mitigation
+    # =========================================================================
+    "days_to_earnings", "days_since_earnings", "in_pead_window",
+    "pead_window_day", "last_surprise_pct", "avg_surprise_4q",
+    "surprise_streak", "surprise_zscore", "earnings_vol",
+    "days_since_10k", "days_since_10q", "reports_bmo",
+    
+    # =========================================================================
+    # REGIME & MACRO (15 features) - Market context
+    # =========================================================================
+    "vix_level", "vix_percentile", "vix_change_5d", "vix_regime",
+    "market_return_5d", "market_return_21d", "market_return_63d",
+    "market_vol_21d", "market_regime",
+    "above_ma_50", "above_ma_200", "ma_50_200_cross",
+    "tech_vs_staples", "tech_vs_utilities", "risk_on_indicator",
+    
+    # =========================================================================
+    # MISSINGNESS (2 features) - Data quality signals
+    # =========================================================================
+    "coverage_pct", "is_new_stock",
 ]
 
 

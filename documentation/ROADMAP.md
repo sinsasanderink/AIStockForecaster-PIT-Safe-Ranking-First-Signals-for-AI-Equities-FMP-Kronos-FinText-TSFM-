@@ -1,6 +1,6 @@
 # AI Stock Forecaster - Project Roadmap
 
-**Last Updated:** December 30, 2025
+**Last Updated:** January 7, 2026
 
 ---
 
@@ -55,13 +55,11 @@
 
 ---
 
-## 🔧 In Progress
-
-### Chapter 7: Baseline Models (Models to Beat)
+### Chapter 7: Baseline Models (Models to Beat) ✅ FROZEN
 
 **Goal:** Establish ML baseline floor and gating thresholds.
 
-**Status:** 🔧 IN PROGRESS (7.3 COMPLETE)
+**Status:** ✅ COMPLETE + FROZEN (tag: `chapter7-tabular-lgb-freeze`)
 
 **Deliverables:**
 1. **Implement `tabular_lgb` Baseline** ✅ COMPLETE
@@ -78,36 +76,156 @@
    - TSFM rule (Chapters 8-12): Must beat tuned ML baseline
    - **Implementation:** `src/evaluation/run_evaluation.py` (`compute_acceptance_verdict`)
    
-3. **FULL_MODE Execution Script** ✅ COMPLETE
+3. **FULL_MODE Execution + Freeze** ✅ COMPLETE
    - Script to run `tabular_lgb` and generate baseline reference
    - Loads REAL DuckDB data, runs monthly + quarterly cadences
    - Compares vs frozen Chapter 6 baseline floor
    - **Implementation:** `scripts/run_chapter7_tabular_lgb.py`
    - **Tests:** `tests/test_chapter7_script.py` (3 tests, all passing)
-   - **Total Tests:** 429/429 passing (426 existing + 3 new)
+   - **Total Tests:** 429/429 passing
 
-**Acceptance Criteria (vs Chapter 6 Frozen Floor):**
-- ⏳ `tabular_lgb` RankIC ≥ 0.05 (ML gate) - pending FULL_MODE run
-- ⏳ Beats momentum baselines on at least 2 of 3 horizons - pending FULL_MODE run
-- ✅ Cost survival improvement: % positive folds ≥ baseline + 10pp (relative gate implemented)
-- ✅ Churn ≤ 0.30 (tradable turnover) - criterion implemented
+**ML Baseline Floor (FROZEN):**
 
-**Next Action:** Run `python scripts/run_chapter7_tabular_lgb.py` to execute FULL_MODE and generate baseline reference
+| **Horizon** | **tabular_lgb (Monthly)** | **Lift vs Factor Floor** |
+|-------------|---------------------------|--------------------------|
+| **20d** | 0.1009 | **+0.0726** (+256%) |
+| **60d** | 0.1275 | **+0.0883** (+225%) |
+| **90d** | 0.1808 | **+0.1639** (+970%) |
+
+**Frozen Artifacts:** `evaluation_outputs/chapter7_tabular_lgb_full/` (tracked in git)
+
+**Acceptance Criteria (PASSED):**
+- ✅ `tabular_lgb` RankIC ≥ 0.05 (ML gate) - **PASSED** (all horizons)
+- ✅ Beats momentum baselines on all 3 horizons - **PASSED**
+- ✅ Cost survival: 6.4%/45.9%/56.9% (20d/60d/90d)
+- ✅ Churn: 0.20 (well below 0.30 threshold)
+
+**Reference:** See `evaluation_outputs/chapter7_tabular_lgb_full/BASELINE_REFERENCE.md`
 
 ---
 
 ## 📋 Planned (TODO)
 
-### Chapter 8: Kronos Integration
+### Pre-Chapter-8: Feature Store Expansion ✅ COMPLETE
+
+**Final State (Jan 7, 2026):**
+- ✅ DuckDB expanded to **52 features** (was 7 in Chapter 7 freeze)
+- ✅ 201,307 feature rows, 600,855 labels, 2,386 regime rows
+- ✅ Date range: 2016-01-04 to 2025-06-30
+- ✅ Chapter 7 baseline frozen and preserved (backup at `data/features_chapter7_freeze.duckdb`)
+- ✅ Data hash: `a6142358f0e9ac57...` (current production)
+
+**Completed Batches:**
+- Batch 1+2 (Jan 2): Price/Volume + Missingness (9 features)
+- Batch 3 (Jan 2): Events/Earnings (12 features)
+- Batch 4 (Jan 2): Regime/Macro (12 features)
+- Batch 5 (Jan 7): Fundamentals Phase 1 (9 features) - validated stepwise behavior
+
+**Required Before Chapter 8:**
+
+**Priority 1: Price/Volume Features (14 total)** ✅ COMPLETE (Jan 2, 2026)
+- [x] Add `vol_of_vol` (volatility of volatility)
+- [x] Add `max_drawdown_60d` (drawdown features)
+- [x] Add `dist_from_high_60d` (distance from high)
+- [x] Add `adv_60d` (60-day ADV)
+- [x] Add `rel_strength_1m`, `rel_strength_3m` (relative strength vs universe)
+- [x] Add `beta_252d` (beta vs QQQ - placeholder, set to None pending benchmark merge)
+
+**Priority 2: Events/Earnings Features (12 total) - Critical for Earnings Gap Issue** ✅ COMPLETE (Jan 2, 2026)
+- [x] Add `days_to_earnings`, `days_since_earnings` (earnings timing) - 100% coverage
+- [x] Add `in_pead_window`, `pead_window_day` (post-earnings drift) - 50% coverage (correct: only when within PEAD window)
+- [x] Add `last_surprise_pct`, `avg_surprise_4q`, `surprise_streak`, `surprise_zscore`, `earnings_vol` (surprise history)
+- [x] Add `days_since_10k`, `days_since_10q`, `reports_bmo` (filing recency)
+
+**Priority 3: Regime/Macro Features (12 total)** ✅ COMPLETE (Jan 2, 2026)
+- [x] Add VIX features: `vix_level`, `vix_percentile`, `vix_change_5d`, `vix_regime`
+- [x] Add market features: `market_return_5d/21d/63d`, `market_vol_21d`, `market_regime`
+- [x] Add technical: `above_ma_50`, `above_ma_200`, `ma_50_200_cross`
+- [ ] ~~Sector rotation: `tech_vs_staples`, `tech_vs_utilities`, `risk_on_indicator`~~ (Deferred - needs sector ETF data)
+
+**Batch 4 Validation (Jan 2, 2026):**
+- [x] Unit tests pass (429 passed)
+- [x] Chapter 7 smoke test passes
+- [x] Regime PIT sniff tests pass (per-date consistency, backward windows, no leakage)
+- [x] All risks mitigated (calendar alignment, merge semantics)
+- See: `BATCH4_VALIDATION_COMPLETE.md`
+
+**Priority 4: Fundamentals (7 total) - FMP Premium Available** ⚠️ HIGH RISK
+- [x] Phase 1: `gross_margin_vs_sector`, `operating_margin_vs_sector` (filings-only) ✅ IMPLEMENTED
+- [x] Phase 1: `revenue_growth_vs_sector`, `roe_zscore` (filings-only) ✅ IMPLEMENTED
+- [x] Phase 1: `sector` (static from profile, documented limitation) ✅ IMPLEMENTED
+- [ ] Phase 2: `pe_zscore_3y`, `pe_vs_sector`, `ps_vs_sector` (requires PIT-safe price + shares)
+
+**⚠️ Batch 5 PIT Safety Implementation:**
+- Phase 1 (filings-only): Uses TTM (sum of 4 quarters), forward-fill between filings
+- Phase 2 (valuation): PENDING - requires as-of close from features_df + shares from filings
+- Sector z-scores: Minimum 5 tickers per sector, else NaN
+- See: `BATCH5_PLAN.md` for detailed implementation plan
+
+**Deferred Features:**
+- Sector rotation: `tech_vs_staples`, `tech_vs_utilities`, `risk_on_indicator` 
+- Reason: Requires sector ETF data (XLK, XLP, XLU) not in pipeline
+
+**Priority 5: Missingness (2 total) - Diagnostic Only** ✅ COMPLETE (Jan 2, 2026)
+- [x] Add `coverage_pct` (% non-null features)
+- [x] Add `is_new_stock` (<252 trading days)
+
+**Implementation:**
+```bash
+# Expand scripts/build_features_duckdb.py to call:
+# - src/features/price_features.py (Priority 1)
+# - src/features/event_features.py (Priority 2)
+# - src/features/regime_features.py (Priority 3)
+# - src/features/fundamental_features.py (Priority 4, needs FMP Premium)
+# - src/features/missingness.py (Priority 5)
+
+# Then rebuild DuckDB:
+python scripts/build_features_duckdb.py --auto-normalize-splits
+```
+
+**Status Update (Jan 7, 2026):**
+- ✅ Batch 1+2 complete: 9 new features added (price/volume + missingness)
+- ✅ Batch 3 complete: 12 event/earnings features added
+- ✅ Batch 4 complete: 12 regime/macro features added
+- ✅ Batch 5 Phase 1 COMPLETE + VALIDATED: 9 fundamental features (4 raw TTM + 4 z-scores + sector)
+- ⏳ Batch 5 Phase 2 DEFERRED: 3 valuation features (P/E, P/S) - needs PIT-safe price/shares
+- ⏳ Deferred: 3 sector rotation features (needs ETF data)
+- ✅ DuckDB rebuild: COMPLETE (52 columns, 201K rows)
+- ✅ Frozen baseline preserved: `data/features_chapter7_freeze.duckdb`
+- ✅ Tests passing: 429/429
+- ✅ Chapter 6 REAL closure complete with baseline floor frozen
+
+**Note:** Chapter 7 baseline (`tabular_lgb`) is frozen and only uses 13 features. Expanding DuckDB does NOT invalidate frozen artifacts. The frozen 7-feature snapshot is backed up at `data/features_chapter7_freeze.duckdb` for exact reproducibility.
+
+**Validation Documents:**
+- `BATCH5_VALIDATION_COMPLETE.md` - Stepwise behavior validated
+- `BATCH5_BUGFIX.md` - 5 bugs fixed (PIT safety, filing classification, etc.)
+
+---
+
+### Chapter 8: Kronos Integration 🟢 READY TO START
 **Goal:** Integrate Kronos foundation model for K-line price dynamics prediction.
+
+**Prerequisites:** ✅ ALL MET
+- ✅ Chapter 6 closed with baseline floor frozen
+- ✅ Chapter 7 baseline frozen (ML floor to beat: 0.1009/0.1275/0.1808)
+- ✅ Feature store expanded (52 features, 201K rows)
+- ✅ OHLCV data available in DuckDB
+- ✅ Tests passing (429/429)
 
 **Deliverables:**
 - [ ] Kronos model adapter (OHLCV → embedding → horizon-specific heads)
+- [ ] ReVIN normalization (rolling mean/std for price level invariance)
 - [ ] Inference pipeline (batch processing, caching)
 - [ ] Integration with evaluation pipeline (must use frozen Chapter 6 framework)
 - [ ] Run FULL_MODE and compare vs `tabular_lgb` baseline
 
-**Acceptance Gate:** Median RankIC ≥ 0.05 (must beat ML baseline)
+**Acceptance Gates:**
+- Gate 1: Zero-shot RankIC ≥ 0.02 (factor baseline)
+- Gate 2: RankIC ≥ 0.05 (ML gate)
+- Gate 3: Approach `tabular_lgb` (≥0.08/0.10/0.15 for 20d/60d/90d)
+
+**Reference:** See `CHAPTER_8_PLAN.md` for detailed implementation plan
 
 ---
 
@@ -278,6 +396,6 @@ print(f"Your model must beat {best_baseline['baseline']} RankIC: {best_baseline[
 
 ---
 
-**Next Action:** Implement Chapter 7 (`tabular_lgb` baseline + gates)  
-**Questions?** See `CHAPTER_6_FREEZE.md` for complete details on the frozen baseline reference.
+**Next Action:** Implement Chapter 8 (Kronos integration)  
+**Questions?** See `CHAPTER_8_PLAN.md` for detailed implementation plan.
 

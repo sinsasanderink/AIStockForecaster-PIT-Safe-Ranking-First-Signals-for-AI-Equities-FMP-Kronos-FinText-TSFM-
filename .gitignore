@@ -47,7 +47,7 @@ data/raw/
 data/processed/
 data/cache/
 data/features.duckdb
-data/*.duckdb
+data/*.duckdb  # Includes features_chapter7_freeze.duckdb (7-feature frozen snapshot for reproducibility)
 *.csv
 *.parquet
 *.pkl

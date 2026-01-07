@@ -818,7 +818,10 @@ else:
 - ✅ Includes delisted names (active=false)
 - ✅ Reproducible for any historical date
 
-### Chapter 5: Feature Engineering (Bias-Safe) — 🔲 NEXT
+### Chapter 5: Feature Engineering (Bias-Safe) ✅ COMPLETE
+
+**Status:** Feature code: 50 features implemented, 84/84 tests passing  
+**⚠️ Note:** Feature pipeline to DuckDB is partial (7 of 50 features). Full pipeline expansion is a pre-Chapter-8 task.
 
 #### Infrastructure Available (from Chapters 3-4) ✅
 | Component | Module | What It Provides |
@@ -1027,8 +1030,62 @@ Example (3-year half-life):
 | `days_since_10q` | Days since last quarterly report | ✅ |
 | `reports_bmo` | Typical BMO vs AMC timing | ✅ |
 
-**Files:** `src/features/event_features.py`
+**Files:** `src/features/event_features.py`  
 **Tests:** 9/9 passed in `tests/test_event_features.py`
+
+**⚠️ Pipeline Status:** Code implemented ✅, DuckDB wiring pending ⏳ (pre-Chapter-8 task)
+
+---
+
+**⚠️ MICROSTRUCTURE CAVEAT: Earnings Gap Timing**
+
+Since we rebalance on the **1st of each month**, stocks with earnings on the **2nd-5th** will experience gap moves within our forward horizon. This creates two scenarios:
+
+1. **Signal (Good):** If our model learns to predict surprise direction via `last_surprise_pct`, `surprise_streak`, etc., earnings gaps are exploitable alpha.
+2. **Noise (Bad):** If our model does NOT predict surprise direction, earnings gaps are lottery tickets that contaminate our IC.
+
+**Current Status:**
+- ⚠️ **Chapter 7 frozen baseline (`tabular_lgb`) does NOT include earnings features**
+- The frozen baseline uses only: momentum, volatility, drawdown, liquidity, relative strength, beta
+- Earnings features are implemented but will be added to models starting **Chapter 8+**
+
+**Future Mitigation (Chapter 8+):**
+- Add earnings features (`days_to_earnings`, `surprise_streak`, etc.) to model feature list
+- IC stratification by `days_to_earnings` (0-5d vs 6-21d vs 22-90d)
+- Earnings-adjusted labels (replace gaps with market return, measure IC delta)
+- Feature importance analysis for earnings features
+- See `EARNINGS_GAP_ANALYSIS.md` for full diagnostic protocol
+
+**Acceptance Threshold:**
+- If earnings contamination > 0.01 IC, implement mitigation (filtering or adjustment)
+- If contamination < 0.01 IC, document as "handled via features"
+
+---
+
+**⚠️ FEATURE STORE GAP (Pre-Chapter-8 Task)**
+
+**Status Summary:**
+- ✅ **Feature code implemented:** All 50 features exist in `src/features/`
+- ⚠️ **DuckDB pipeline partial:** Only 7 features wired into `scripts/build_features_duckdb.py`
+- ✅ **Chapter 7 frozen baseline unaffected:** Uses only 13 features (subset of 50)
+
+**What's in DuckDB now:** `mom_1m`, `mom_3m`, `mom_6m`, `mom_12m`, `adv_20d`, `vol_20d`, `vol_60d`
+
+**What needs to be added (43 features):**
+- Price/Volume: 7 more (vol_of_vol, drawdown, rel_strength, beta)
+- Events/Earnings: 12 features (days_to_earnings, surprise_streak, etc.)
+- Regime/Macro: 15 features (VIX, market regime, sector rotation)
+- Fundamentals: 7 features (P/E, P/S, margins - requires FMP Premium)
+- Missingness: 2 features (coverage_pct, is_new_stock)
+
+**Action Required Before Chapter 8:**
+Expand `scripts/build_features_duckdb.py` to call all feature generators from `src/features/`. See ROADMAP.md "Pre-Chapter-8 Feature Expansion" section for priority order.
+
+**Available Now for Models:**
+- `DEFAULT_TABULAR_FEATURES` (13 features) - Chapter 7 frozen baseline
+- `EXTENDED_TABULAR_FEATURES` (50 features) - Chapter 8+ models (once DuckDB expanded)
+
+---
 
 **5.5 Regime & Macro Features ✅ COMPLETE**
 
@@ -1051,8 +1108,9 @@ Example (3-year half-life):
 | `risk_on_indicator` | Composite risk-on/off signal | ✅ |
 
 **Key:** Market-level features common to all stocks in universe.
-**Files:** `src/features/regime_features.py`
-**Tests:** 10/10 passed in `tests/test_regime_missingness.py`
+**Files:** `src/features/regime_features.py`  
+**Tests:** 10/10 passed in `tests/test_regime_missingness.py`  
+**⚠️ Pipeline Status:** Code implemented ✅, DuckDB wiring pending ⏳ (pre-Chapter-8 task)
 
 **5.6 Missingness Masks ✅ COMPLETE**
 
@@ -1202,6 +1260,23 @@ results = neutralization_report(
 - No feature introduces PIT violations
 - IC sign consistent across ≥70% of rolling windows
 - Redundancy understood: feature blocks documented
+
+#### Feature Pipeline Status
+
+**Code Implementation:** ✅ COMPLETE (50 features, 84/84 tests passing)
+
+**DuckDB Pipeline:** ⚠️ PARTIAL (7 of 50 features wired)
+
+| Category | Features | In Code | In DuckDB | Status |
+|----------|----------|---------|-----------|--------|
+| Price/Volume | 14 | ✅ | 7 | ⚠️ 7 missing |
+| Fundamentals | 7 | ✅ | 0 | ⚠️ Needs wiring + FMP Premium |
+| Events/Earnings | 12 | ✅ | 0 | ⚠️ Needs wiring (critical for earnings gaps) |
+| Regime/Macro | 15 | ✅ | 0 | ⚠️ Needs wiring |
+| Missingness | 2 | ✅ | 0 | ⚠️ Needs wiring |
+| **Total** | **50** | **50** | **7** | **43 pending** |
+
+**Pre-Chapter-8 Task:** Expand `scripts/build_features_duckdb.py` to wire all feature generators. See ROADMAP.md "Pre-Chapter-8: Feature Store Expansion" for detailed checklist.
 
 ### Chapter 6: Evaluation Realism ✅ CLOSED & FROZEN
 
@@ -2015,7 +2090,7 @@ for baseline in list_baselines():
 
 ## Chapter 7: Baselines to Beat
 
-**Status:** 🔧 IN PROGRESS (7.3 COMPLETE)
+**Status:** ✅ COMPLETE + FROZEN (tag: `chapter7-tabular-lgb-freeze`)
 
 ### 7.1-7.2: Factor Baselines ✅ COMPLETE (Frozen in Chapter 6)
 
@@ -2118,9 +2193,9 @@ python scripts/run_chapter7_tabular_lgb.py
 python scripts/run_chapter7_tabular_lgb.py --smoke
 ```
 
-**Output Directory:**
+**Output Directory (FROZEN):**
 ```
-evaluation_outputs/chapter7_tabular_lgb_real/
+evaluation_outputs/chapter7_tabular_lgb_full/  # FROZEN artifacts
 ├── monthly/
 │   ├── eval_rows.parquet
 │   ├── fold_summaries.csv
@@ -2130,26 +2205,54 @@ evaluation_outputs/chapter7_tabular_lgb_real/
 ├── quarterly/
 │   └── (same structure)
 ├── BASELINE_REFERENCE.md
+├── BASELINE_FLOOR.json  # ML baseline floor for Chapter 8+
 ├── CLOSURE_MANIFEST.json
 └── DATA_MANIFEST.json
 ```
 
 **Tests:** `tests/test_chapter7_script.py` (3 tests, smoke mode)
 
+### 7.6: ML Baseline Freeze ✅ FROZEN
+
+**Freeze Tag:** `chapter7-tabular-lgb-freeze`  
+**Commit:** `a264fd2a`  
+**Data Hash:** `f3899b37cb9f34f1`
+
+**Frozen ML Baseline Floor:**
+
+| Horizon | tabular_lgb (Monthly) | Lift vs Factor Floor |
+|---------|----------------------|----------------------|
+| 20d | 0.1009 | **+0.0726** (+256%) |
+| 60d | 0.1275 | **+0.0883** (+225%) |
+| 90d | 0.1808 | **+0.1639** (+970%) |
+
+**Gate Policy for Chapter 8+ (TSFM Models):**
+- **RankIC:** Must beat `tabular_lgb` + 0.02
+- **Cost Survival:** % positive folds ≥ `tabular_lgb` + 10pp
+- **Churn:** Median Top-10 churn < 0.30
+
+**Frozen Artifacts Location:** `evaluation_outputs/chapter7_tabular_lgb_full/`
+
 ---
 
 ## Chapter 7 Summary
 
-**Status:** ✅ COMPLETE (ready to run FULL_MODE)
+**Status:** ✅ COMPLETE + FROZEN
 
 **Deliverables:**
-1. ✅ 7.3: `tabular_lgb` baseline implemented and tested
-2. ✅ 7.4: Gating policy implemented in acceptance criteria
-3. ✅ 7.5: FULL_MODE execution script ready
+1. ✅ 7.1-7.2: Factor baselines (frozen in Chapter 6)
+2. ✅ 7.3: `tabular_lgb` ML baseline implemented and tested
+3. ✅ 7.4: Gating policy implemented (relative to frozen floor)
+4. ✅ 7.5: FULL_MODE execution script executed
+5. ✅ 7.6: ML baseline frozen with git tag
 
-**Next Action:** Run `python scripts/run_chapter7_tabular_lgb.py` to generate baseline reference
+**Frozen Artifacts:**
+- `evaluation_outputs/chapter6_closure_real/` - Factor baselines (immutable)
+- `evaluation_outputs/chapter7_tabular_lgb_full/` - ML baseline (immutable)
 
-**Total Tests:** 429/429 passing (426 existing + 3 new Chapter 7 script tests)
+**Total Tests:** 429/429 passing
+
+**Next Chapter:** Chapter 8 (Kronos TSFM) - models must beat ML baseline floor
 
 ### Chapter 11/12: Fusion + Regime-Aware Ensembling
 
