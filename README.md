@@ -1,11 +1,13 @@
 # AI Stock Forecaster
-**FMP + Kronos + FinText-TSFM | Signal-Only, Point-in-Time Safe (PIT) | Ranking-First**
+**Kronos + FinText-TSFM + FMP | Signal-Only Stock Ranking for AI Equities**
 
 A decision-support forecasting system that answers:
 
 > **Which AI stocks are most attractive to buy today (risk-adjusted) over the next 20 / 60 / 90 trading days?**
 
 This repo produces **ranked signals + return distributions** — **not trades**.
+
+This project is a **point-in-time safe, survivorship-aware forecasting system** that produces **ranked, risk-adjusted buy attractiveness signals** for a dynamic universe of AI-exposed U.S. equities. On each rebalance date, it generates **cross-sectional rankings** (top buys / neutral / avoid) and **per-stock return distributions** over **20 / 60 / 90 trading-day horizons**, expressed as **excess total return vs a benchmark** (QQQ by default). The pipeline is designed for credibility under real financial constraints: all features obey strict **as-of cutoffs** (no lookahead), fundamentals are handled as-reported with **release timestamps**, delistings/ticker changes are handled via **stable IDs**, and evaluation uses a locked **walk-forward, embargoed** framework with **cost and churn diagnostics** to test whether signals remain economically meaningful. The system is explicitly **signal-only** (no brokerage connectivity or execution) and prioritizes **ranking quality and stability** over price regression, combining complementary information sources including **price dynamics (Kronos)**, **return structure (FinText-TSFM)**, and **tabular context (FMP fundamentals/events/regime features)**.
 
 ---
 
