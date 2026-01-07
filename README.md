@@ -1,6 +1,8 @@
 # AI Stock Forecaster
 **Kronos + FinText-TSFM + FMP | Signal-Only Stock Ranking for AI Equities**
 
+![Project cover](cover.png)
+
 A decision-support forecasting system that answers:
 
 > **Which AI stocks are most attractive to buy today (risk-adjusted) over the next 20 / 60 / 90 trading days?**
