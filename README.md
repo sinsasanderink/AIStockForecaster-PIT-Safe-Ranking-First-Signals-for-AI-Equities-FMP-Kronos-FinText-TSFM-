@@ -1,5 +1,4 @@
 # AI Stock Forecaster
-**Kronos + FinText-TSFM + FMP | Signal-Only Stock Ranking for AI Equities**
 
 ![Project cover](cover.png)
 
