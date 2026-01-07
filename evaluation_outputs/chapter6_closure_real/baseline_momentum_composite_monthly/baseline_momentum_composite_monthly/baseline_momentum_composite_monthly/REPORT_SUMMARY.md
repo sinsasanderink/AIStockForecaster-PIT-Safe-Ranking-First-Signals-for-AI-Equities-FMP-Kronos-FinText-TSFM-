@@ -1,6 +1,6 @@
 # Stability Report: baseline_momentum_composite_monthly
 
-**Generated:** 2025-12-30 00:29:28
+**Generated:** 2026-01-07 11:53:59
 
 ---
 

@@ -1,7 +1,7 @@
 # Chapter 6 Baseline Reference
 
-**Generated:** 2025-12-30T05:45:21.185964Z
-**Commit:** bf2cf8e0e74a62100ac15314eaf74cbf4decbac0
+**Generated:** 2026-01-07T17:24:14.499765Z
+**Commit:** 5a5cfae702cbbe159b7cda4ecbcc53a372e0074d
 
 ---
 
@@ -59,4 +59,4 @@ verdict = compute_acceptance_verdict(
 
 ---
 
-**Frozen at commit:** `bf2cf8e0e74a62100ac15314eaf74cbf4decbac0`
+**Frozen at commit:** `5a5cfae702cbbe159b7cda4ecbcc53a372e0074d`

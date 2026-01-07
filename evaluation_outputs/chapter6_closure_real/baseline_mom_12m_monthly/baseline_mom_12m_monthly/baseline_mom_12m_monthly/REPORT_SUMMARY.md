@@ -1,6 +1,6 @@
 # Stability Report: baseline_mom_12m_monthly
 
-**Generated:** 2025-12-30 00:27:12
+**Generated:** 2026-01-07 11:51:36
 
 ---
 

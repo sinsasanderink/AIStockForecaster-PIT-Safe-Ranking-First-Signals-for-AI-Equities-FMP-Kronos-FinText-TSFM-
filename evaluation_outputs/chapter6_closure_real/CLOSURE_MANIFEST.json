@@ -1,11 +1,11 @@
 {
   "chapter": "6",
   "type": "closure_reference",
-  "generated_at": "2025-12-30T05:45:21.185964Z",
+  "generated_at": "2026-01-07T17:24:14.499765Z",
   "git": {
-    "commit_hash": "bf2cf8e0e74a62100ac15314eaf74cbf4decbac0",
+    "commit_hash": "5a5cfae702cbbe159b7cda4ecbcc53a372e0074d",
     "has_uncommitted_changes": true,
-    "branch": "main"
+    "branch": "docs-and-eval-framework"
   },
   "environment": {
     "python_version": "3.11.5 (main, Sep 11 2023, 08:19:27) [Clang 14.0.6 ]",
@@ -67,7 +67,7 @@
     "source": "duckdb",
     "db_path": "data/features.duckdb",
     "schema_version": "1.0.0",
-    "build_timestamp": "2025-12-30T04:33:21.312404Z",
+    "build_timestamp": "2026-01-07T12:58:02.873086Z",
     "n_rows": 192307,
     "n_dates": 2296,
     "n_stocks": 100,
@@ -101,7 +101,7 @@
     "sanity_passed": true
   },
   "baseline_floor": {
-    "computed_at": "2025-12-30T05:45:04.775669Z",
+    "computed_at": "2026-01-07T17:24:01.215718Z",
     "horizons": {
       "20": {
         "mom_12m_monthly": {
