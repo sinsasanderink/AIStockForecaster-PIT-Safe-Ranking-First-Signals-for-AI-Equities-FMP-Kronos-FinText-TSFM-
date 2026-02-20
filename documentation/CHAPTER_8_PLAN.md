@@ -20,17 +20,20 @@
 
 ## What is Kronos?
 
-Kronos is a **time-series foundation model** designed for K-line (candlestick/OHLCV) price dynamics prediction. It captures:
-- Price patterns (trends, reversals, consolidations)
-- Volatility structure
-- Support/resistance levels
-- Time-of-day/week effects
+**Kronos** is the first open-source foundation model for financial K-lines (candlesticks), trained on 45+ global exchanges. [GitHub](https://github.com/shiyu-coder/Kronos) | [Paper (arXiv:2508.02739)](https://arxiv.org/html/2508.02739v1)
+
+**Architecture:**
+- **Tokenizer:** VQ-VAE-based hierarchical tokenization of OHLCV sequences
+- **Predictor:** Decoder-only Transformer (GPT-like architecture)
+- **Pre-training:** 45+ exchanges, multiple asset classes, billions of tokens
+- **Input:** OHLCV sequences (lookback configurable, default 252 days)
+- **Output:** Future OHLCV predictions (autoregressive generation)
 
 **Key Properties:**
-- Input: OHLCV sequences (normalized)
-- Output: Embeddings + horizon-specific return predictions
-- Architecture: Transformer-based with ReVIN normalization
-- Pre-trained on broad market data
+- Available on HuggingFace: `shiyu-coder/Kronos-tokenizer`, `shiyu-coder/Kronos-predictor`
+- Supports multiple sampling for distribution estimation
+- Can extract embeddings for fusion (Chapter 11)
+- Includes fine-tuning infrastructure via Qlib
 
 ---
 
@@ -159,11 +162,18 @@ python scripts/run_chapter8_kronos.py --mode FULL
 
 ### Model Setup
 ```bash
-# Install Kronos dependencies
-pip install torch transformers einops
+# Dependencies already installed:
+# - torch 2.0.1 ✅
+# - transformers 4.57.1 ✅
+# - einops 0.8.1 ✅
+# - qlib 0.9.7 ✅ (for fine-tuning)
 
-# Download pre-trained weights (if available)
-# Or use HuggingFace model hub
+# Clone Kronos repo for reference
+git clone https://github.com/shiyu-coder/Kronos.git /tmp/kronos_reference
+
+# Models auto-download from HuggingFace on first use:
+# - shiyu-coder/Kronos-tokenizer
+# - shiyu-coder/Kronos-predictor
 ```
 
 ### Data Requirements

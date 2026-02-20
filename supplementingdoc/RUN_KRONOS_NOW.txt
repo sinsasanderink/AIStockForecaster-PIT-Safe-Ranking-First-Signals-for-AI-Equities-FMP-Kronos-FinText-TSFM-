@@ -1,0 +1,106 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║  🚀 HOW TO RUN KRONOS (REAL MODEL) - 3 COMMANDS                     ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 1: INSTALL                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+
+    ./INSTALL_KRONOS.sh
+
+    ⏱️  Takes: ~2-5 minutes
+    📦 Downloads: ~50MB (Kronos repo)
+    ✅ Installs: torch, transformers, datasets
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 2: SET PATH (pick one)                                         │
+└──────────────────────────────────────────────────────────────────────┘
+
+    # Option A: Temporary (current session only)
+    export PYTHONPATH="$(pwd)/Kronos:$PYTHONPATH"
+
+    # Option B: Permanent (add to profile)
+    echo 'export PYTHONPATH="'$(pwd)'/Kronos:$PYTHONPATH"' >> ~/.bash_profile
+    source ~/.bash_profile
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 3: VERIFY (recommended)                                        │
+└──────────────────────────────────────────────────────────────────────┘
+
+    python scripts/test_kronos_installation.py
+
+    Expected: ✓ ALL TESTS PASSED
+
+    ⚠️  First run downloads models from HuggingFace (~600MB)
+        - Tokenizer: ~100MB
+        - Model: ~500MB
+        - This is normal and only happens once!
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│ STEP 4: RUN EVALUATION                                              │
+└──────────────────────────────────────────────────────────────────────┘
+
+    ./run_kronos_full.sh
+
+    ⏱️  Runtime: 2-4 hours (109 folds × 3 horizons)
+    💾 Output: evaluation_outputs/chapter8_kronos_full/
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║  📋 COPY-PASTE READY (all-in-one)                                   ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+./INSTALL_KRONOS.sh && \
+export PYTHONPATH="$(pwd)/Kronos:$PYTHONPATH" && \
+python scripts/test_kronos_installation.py && \
+./run_kronos_full.sh
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║  🆘 TROUBLESHOOTING                                                  ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+Problem: "Kronos not available"
+Fix:     export PYTHONPATH="$(pwd)/Kronos:$PYTHONPATH"
+
+Problem: "No module named 'model'"
+Fix:     ./INSTALL_KRONOS.sh
+         export PYTHONPATH="$(pwd)/Kronos:$PYTHONPATH"
+
+Problem: Downloads fail
+Fix:     Check internet, wait and retry
+
+Full docs: INSTALL_AND_RUN_KRONOS.md
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║  📊 AFTER EVALUATION COMPLETES                                       ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+View results:
+    cat evaluation_outputs/chapter8_kronos_full/chapter8_kronos_full/REPORT_SUMMARY.md
+
+Check RankIC:
+    head evaluation_outputs/chapter8_kronos_full/chapter8_kronos_full/fold_summaries.csv
+
+Compare to baselines:
+    Ch6 factor floor: 0.0283 / 0.0392 / 0.0169
+    Ch7 LGB:          0.1009 / 0.1275 / 0.1808
+
+Next: See CHAPTER_8_NEXT_ACTIONS.md for Phase 4
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║  ✅ YOU'RE ALL SET! Just run the commands above. 🚀                  ║
+╚══════════════════════════════════════════════════════════════════════╝

@@ -138,6 +138,17 @@ def compute_ic_decay_stats(
     Returns:
         DataFrame with decay statistics per fold/horizon
     """
+    # Guard: check required columns exist
+    required = {"fold_id", "horizon", metric_col}
+    if per_date_metrics is None or per_date_metrics.empty:
+        logger.warning("compute_ic_decay_stats: empty DataFrame, returning empty stats")
+        return pd.DataFrame(columns=["fold_id", "horizon", "early_median", "late_median", "decay", "pct_positive", "flags"])
+    
+    if not required.issubset(per_date_metrics.columns):
+        missing = required - set(per_date_metrics.columns)
+        logger.warning(f"compute_ic_decay_stats: missing columns {missing}, returning empty stats")
+        return pd.DataFrame(columns=["fold_id", "horizon", "early_median", "late_median", "decay", "pct_positive", "flags"])
+    
     results = []
     
     for (fold_id, horizon), group in per_date_metrics.groupby(["fold_id", "horizon"]):
@@ -564,6 +575,38 @@ def generate_stability_report(
     Returns:
         Paths to all generated artifacts
     """
+    # CRITICAL: Guard against empty evaluation results (0 rows)
+    # This can happen if model fails to produce any scores
+    if inputs.per_date_metrics is None or inputs.per_date_metrics.empty:
+        logger.warning("No per-date metrics to report (0 evaluation rows). Creating minimal report.")
+        
+        # Create output directories
+        exp_dir = output_dir / experiment_name
+        exp_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Write empty report
+        empty_report_path = exp_dir / "REPORT_EMPTY.md"
+        with open(empty_report_path, 'w') as f:
+            f.write(f"# {experiment_name} - Empty Report\n\n")
+            f.write("**Status:** No evaluation rows generated (model failed to produce scores)\n\n")
+            f.write("**Reason:** Model scoring function returned empty DataFrame for all dates/folds\n\n")
+            f.write("**Next Steps:**\n")
+            f.write("1. Check logs for model errors\n")
+            f.write("2. Verify model loads correctly\n")
+            f.write("3. Check data availability (prices, features)\n")
+            f.write("4. Review device/memory issues\n")
+        
+        logger.warning(f"Created empty report: {empty_report_path}")
+        
+        return StabilityReportOutputs(
+            summary_report=str(empty_report_path),
+            ic_decay_stats=None,
+            regime_performance=None,
+            churn_diagnostics=None,
+            cost_overlays=None,
+            figure_paths=[],
+        )
+    
     # Create output directories
     exp_dir = output_dir / experiment_name
     tables_dir = exp_dir / "tables"

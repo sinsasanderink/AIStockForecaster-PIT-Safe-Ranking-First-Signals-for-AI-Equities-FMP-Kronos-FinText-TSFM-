@@ -1,0 +1,129 @@
+======================================================================
+AI STOCK FORECAST - THESIS DATASET SUMMARY
+======================================================================
+Generated: 2026-01-21 17:40:22
+
+DATASET OVERVIEW
+----------------------------------------------------------------------
+Total observations: 201,307
+Date range: 2016-01-04 to 2025-06-30
+Unique tickers: 100
+Feature columns: 52 (momentum, liquidity, volatility, earnings, regime, fundamentals)
+Target horizons: 20d, 60d, 90d (forward excess returns vs QQQ)
+
+TICKER UNIVERSE (AI/Technology Stocks)
+----------------------------------------------------------------------
+Total unique tickers: 100
+
+Top 10 tickers by observation count:
+  AAPL: 2,386 observations
+  ONTO: 2,386 observations
+  AKAM: 2,386 observations
+  AMAT: 2,386 observations
+  AMD: 2,386 observations
+  AMZN: 2,386 observations
+  ANET: 2,386 observations
+  APH: 2,386 observations
+  ASML: 2,386 observations
+  AVAV: 2,386 observations
+
+FEATURE CATEGORIES (52 features total)
+----------------------------------------------------------------------
+• Momentum (4): 1M, 3M, 6M, 12M price returns
+• Liquidity (2): Average daily volume (20D, 60D)
+• Volatility (3): Annualized volatility (20D, 60D), vol-of-vol
+• Drawdown (2): Max drawdown, distance from high
+• Relative Strength (2): Excess return vs QQQ (1M, 3M)
+• Beta (1): 252-day rolling beta vs QQQ
+• Earnings (12): Days to/since earnings, surprises, PEAD signals
+• Regime (12): VIX level/regime, market returns/volatility, MA crossovers
+• Fundamentals (9): Margins, revenue growth, ROE (raw + sector-adjusted)
+• Missingness (2): Coverage %, new stock flag
+
+TARGET VARIABLES
+----------------------------------------------------------------------
+Forward excess return = (stock_return_horizon - QQQ_return_horizon)
+
+20-day horizon:
+  Non-null targets: 192,307
+  Mean: 0.0068
+  Std: 0.1034
+  Min: -0.6571
+  Max: 3.4170
+
+POINT-IN-TIME SAFETY
+----------------------------------------------------------------------
+✓ All features are PIT-safe (no look-ahead bias)
+✓ Earnings data filtered by announcement datetime
+✓ SEC filings filtered by acceptance datetime
+✓ Prices are split-adjusted using FMP data
+✓ Labels include maturation timestamp for validation
+✓ Forward-fill applied to quarterly fundamental data
+
+DATA SOURCES
+----------------------------------------------------------------------
+• Prices: Financial Modeling Prep (FMP) API - split-adjusted OHLCV
+• Earnings: FMP earnings calendar + Alpha Vantage surprises
+• Filings: SEC EDGAR (10-K, 10-Q acceptance timestamps)
+• Fundamentals: FMP income statements (TTM)
+• Regime: FMP historical prices (SPY, VIX ETF proxy)
+• Benchmark: QQQ (Nasdaq-100 ETF) for excess returns
+
+UNIVERSE SELECTION
+----------------------------------------------------------------------
+The dataset focuses on AI and technology stocks including:
+• AI Infrastructure (NVDA, AMD, AVGO, QCOM, etc.)
+• Cloud & Software (MSFT, GOOGL, AMZN, CRM, etc.)
+• Hardware & Semiconductors (INTC, MU, AMAT, etc.)
+• Consumer Tech (AAPL, META, TSLA, etc.)
+• Cybersecurity & Enterprise (PANW, CRWD, NOW, etc.)
+
+USAGE NOTES
+----------------------------------------------------------------------
+1. Use 'date' as the as-of date for time-series splits
+2. Use 'ticker' + 'date' as the unique row identifier
+3. Forward-fill missing fundamentals (updated quarterly)
+4. Consider winsorizing extreme values (volatility, returns)
+5. The 'stable_id' tracks tickers across symbol changes
+6. Regime data is duplicated across stocks (join by 'date')
+7. Use separate regime_data.csv for market-level features only
+
+RECOMMENDED MODELING APPROACH
+----------------------------------------------------------------------
+• Walk-forward validation with 3-6 month train window
+• Monthly or quarterly rebalancing (avoid overfitting)
+• Use gradient boosting (LightGBM) or neural networks
+• Evaluate with RankIC (Spearman correlation) for ranking quality
+• Include transaction costs (10 bps) in backtest
+• Consider market regime as a feature or for stratification
+
+BENCHMARK RESULTS (LightGBM Baseline)
+----------------------------------------------------------------------
+Published results from this dataset (Chapter 7):
+• 20d RankIC: 0.1009 (monthly rebalance)
+• 60d RankIC: 0.1275 (monthly rebalance)
+• 90d RankIC: 0.1808 (monthly rebalance)
+• Churn: 0.20 (stable signals)
+• Cost survival (60d): 45.9% of predictions remain positive after costs
+
+FILES EXPORTED
+----------------------------------------------------------------------
+1. modeling_dataset_20d.csv - Main dataset (20-day horizon)
+2. modeling_dataset_60d.csv - 60-day horizon version
+3. modeling_dataset_90d.csv - 90-day horizon version
+4. regime_data.csv - Market regime indicators (daily)
+5. data_dictionary.csv - Column definitions and descriptions
+6. dataset_summary.txt - This file (metadata and usage guide)
+
+CITATION & ACKNOWLEDGMENT
+----------------------------------------------------------------------
+Data sources:
+• Financial Modeling Prep API (https://financialmodelingprep.com/)
+• SEC EDGAR Database (https://www.sec.gov/edgar)
+• Alpha Vantage API (https://www.alphavantage.co/)
+
+This dataset was created as part of a master's thesis on
+AI-enhanced stock forecasting using machine learning and
+foundation models for quantitative investment strategies.
+
+======================================================================

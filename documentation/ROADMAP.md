@@ -1,401 +1,823 @@
 # AI Stock Forecaster - Project Roadmap
 
-**Last Updated:** January 7, 2026
+**Last Updated:** February 19, 2026
+**Current Phase:** Chapter 13 IN PROGRESS — DEUP Uncertainty Quantification (13.0–13.5 complete, 13.6 next)
 
 ---
 
-## ✅ Completed (Production Ready)
+## Overview
 
-### Chapter 1-4: Infrastructure & Data
-- ✅ System outputs (signals, rankings, reports)
-- ✅ FMP API client (split-adjusted OHLCV + dividends)
-- ✅ Point-in-time data store (DuckDB)
-- ✅ PIT scanner (zero CRITICAL violations)
-- ✅ AI stock universe (100 stocks, 10 categories)
-- ✅ Trading calendar (NYSE holidays, market close timing)
+This roadmap tracks the implementation status of the AI Stock Forecaster, a signal-only decision-support system for AI stock ranking using foundation models (Kronos + FinText-TSFM) with tabular context features.
 
-### Chapter 5: Feature Engineering
-- ✅ Labels: v2 total return (dividends, mature-aware, PIT-safe)
-- ✅ Price features: Momentum (1m/3m/6m/12m), volatility, drawdown
-- ✅ Fundamental features: Relative ratios vs sector
-- ✅ Event features: Earnings, filings, calendars
-- ✅ Regime features: VIX, market trend, sector rotation
-- ✅ Missingness: Coverage tracking, "known at time T" masks
-- ✅ Hygiene: Standardization, correlation, VIF, IC stability
-- ✅ Neutralization: Sector/beta/market neutral IC
+---
 
-### Chapter 6: Evaluation Realism 🔒 FROZEN
-**Status:** CLOSED & FROZEN (December 30, 2025)  
+## Chapter Status Summary
+
+| Chapter | Status | Completion | Last Updated |
+|---------|--------|------------|--------------|
+| Ch1-2: Outputs & System Design | ✅ COMPLETE | 100% | Dec 2025 |
+| Ch3-4: Data & Universe | ✅ COMPLETE | 100% | Dec 2025 |
+| Ch5: Feature Engineering | ✅ COMPLETE | 100% | Dec 2025 |
+| Ch6: Evaluation Framework | 🔒 FROZEN | 100% | Dec 30, 2025 |
+| Ch7: Baseline Models | 🔒 FROZEN | 100% | Jan 5, 2026 |
+| **Ch8: Kronos (TSFM)** | ✅ **COMPLETE** | **100%** | **Jan 9, 2026** |
+| **Ch9: FinText-TSFM** | **✅ COMPLETE** | **100%** | **Feb 17, 2026** |
+| **Ch10: NLP Sentiment** | **✅ COMPLETE** | **100%** | **Feb 18, 2026** |
+| **Ch11: Fusion Model** | **✅ COMPLETE** | **100%** | **Feb 19, 2026** |
+| **Ch12: Regime Analysis** | **✅ COMPLETE** | **100%** | **Feb 19, 2026** |
+| Ch13: DEUP Uncertainty Quantification | ⏳ IN PROGRESS | 75% | Feb 2026 |
+| Ch14: Monitoring | ⏳ TODO | 0% | - |
+| Ch15: Interfaces | ⏳ TODO | 0% | - |
+| Ch16: Acceptance Criteria & Factor Attribution | ⏳ TODO | 0% | - |
+| Ch17: Bayesian UQ Extensions & Model Comparisons | ⏳ TODO | 0% | - |
+
+---
+
+## Chapter 1-2: System Outputs & Design ✅ COMPLETE
+
+**Purpose:** Define signal-only outputs and establish project scope
+
+**Key Deliverables:**
+- ✅ Signal format specification (EvaluationRow contract)
+- ✅ Per-stock outputs (expected excess return, distribution, ranking score)
+- ✅ Cross-sectional outputs (ranked lists, confidence buckets)
+- ✅ Scope boundaries (signals only, no execution/trading)
+
+**Status:** Complete and frozen
+
+---
+
+## Chapter 3-4: Data & Universe Infrastructure ✅ COMPLETE
+
+**Purpose:** Build point-in-time safe data infrastructure with survivorship-bias-free universe
+
+**Key Deliverables:**
+- ✅ FMP client (OHLCV, fundamentals, profiles)
+- ✅ DuckDB PIT store (observed_at timestamps)
+- ✅ Event store (earnings, filings, sentiment)
+- ✅ Security master (stable IDs, ticker changes)
+- ✅ Universe builder (survivorship-safe, Polygon-backed)
+- ✅ Trading calendar (NYSE holidays, cutoffs)
+- ✅ PIT violation scanner (0 CRITICAL violations)
+
 **Tests:** 413/413 passing  
-**Commits:** `18bad8a` + `7e6fa3a`
 
-**Frozen Infrastructure:**
-- ✅ Definition lock (horizons/embargo = TRADING DAYS, UTC maturity)
-- ✅ Walk-forward splitter (expanding window + purging/embargo/maturity)
-- ✅ Sanity checks (IC parity + experiment naming)
-- ✅ Metrics (EvaluationRow contract + RankIC/churn/regime slicing)
-- ✅ Cost overlay (base + ADV-scaled slippage + sensitivity bands)
-- ✅ Stability reports (IC decay, regime tables, churn diagnostics)
-- ✅ 4 baselines (mom_12m, momentum_composite, short_term_strength, naive_random)
-- ✅ End-to-end orchestrator (SMOKE/FULL modes)
-- ✅ Qlib shadow evaluator (IC parity verification)
-- ✅ DuckDB feature store (192,307 rows, 2016-2025)
-
-**Frozen Baseline Floor (REAL Data):**
-
-| Horizon | Best Baseline | Median RankIC | Churn | Cost Survival |
-|---------|---------------|---------------|-------|---------------|
-| **20d** | `mom_12m_monthly` | 0.0283 | 0.10 | 5.8% positive |
-| **60d** | `momentum_composite_monthly` | 0.0392 | 0.10 | 25.1% positive |
-| **90d** | `momentum_composite_monthly` | 0.0169 | 0.10 | 40.1% positive |
-
-**Frozen Artifacts:** `evaluation_outputs/chapter6_closure_real/` (tracked in git)
-
-**Reference:** See `CHAPTER_6_FREEZE.md` for complete details.
+**Status:** Complete and frozen
 
 ---
 
-### Chapter 7: Baseline Models (Models to Beat) ✅ FROZEN
+## Chapter 5: Feature Engineering ✅ COMPLETE
 
-**Goal:** Establish ML baseline floor and gating thresholds.
+**Purpose:** Implement 50+ PIT-safe features across 8 batches
 
-**Status:** ✅ COMPLETE + FROZEN (tag: `chapter7-tabular-lgb-freeze`)
+**Batches:**
+- ✅ Batch 1: Momentum (4 features)
+- ✅ Batch 2: Liquidity + Volatility (5 features)
+- ✅ Batch 3: Drawdown + Relative Strength + Beta (5 features)
+- ✅ Batch 4: Regime & Macro (15 features)
+- ✅ Batch 5: Fundamentals (9 features) - TTM + Z-scores
+- ✅ Batch 6: Events & Earnings (12 features)
+- ✅ Batch 7: Missingness Masks (2 features)
+- ✅ Batch 8: Feature Hygiene & Neutralization (diagnostics)
+
+**DuckDB Store:**
+- Features: 201,307 rows (51 columns)
+- Labels: 600,855 rows (excess_return_20d/60d/90d)
+- Regime: 2,386 rows (15 macro features)
+- Date range: 2016-01-04 to 2025-06-30
+
+**Validation:**
+- ✅ Step-function tests passed (fundamentals piecewise-constant between filings)
+- ✅ PIT scanner: 0 CRITICAL violations
+- ✅ Coverage > 95% for all feature batches
+
+**Status:** Complete and frozen
+
+---
+
+## Chapter 6: Evaluation Framework 🔒 FROZEN
+
+**Purpose:** Build walk-forward evaluation with frozen baseline reference
+
+**Key Deliverables:**
+- ✅ Walk-forward splitter (expanding window, purging/embargo/maturity)
+- ✅ EvaluationRow contract
+- ✅ Metrics (RankIC, quintile spread, hit rate, churn)
+- ✅ Cost overlay diagnostics
+- ✅ Stability reports (regime-conditional performance)
+- ✅ Qlib shadow evaluator integration
+- ✅ SMOKE and FULL evaluation modes
+
+**Frozen Baseline Floor (REAL DuckDB Data):**
+
+| Horizon | Best Baseline | Median RankIC | Quintile Spread | Hit Rate @10 | N Folds |
+|---------|---------------|---------------|-----------------|--------------|---------|
+| 20d | mom_12m_monthly | 0.0283 | 0.0035 | 0.50 | 109 |
+| 60d | momentum_composite_monthly | 0.0392 | 0.0370 | 0.60 | 109 |
+| 90d | momentum_composite_monthly | 0.0169 | 0.0374 | 0.60 | 109 |
+
+**Artifacts:** `evaluation_outputs/chapter6_closure_real/` (tracked in git)
+
+**Status:** FROZEN (Dec 30, 2025) - Immutable baseline reference
+
+---
+
+## Chapter 7: Baseline Models 🔒 FROZEN
+
+**Purpose:** Establish factor and ML baselines that models must beat
+
+**Baselines Implemented:**
+1. ✅ `mom_12m` - 12-month momentum (primary naive baseline)
+2. ✅ `momentum_composite` - Multi-horizon momentum
+3. ✅ `short_term_strength` - 1-month momentum (diagnostic)
+4. ✅ `naive_random` - Sanity check (RankIC ≈ 0)
+5. ✅ `tabular_lgb` - LightGBM ML baseline
+
+**Frozen ML Baseline (tabular_lgb):**
+
+| Horizon | Median RankIC | Lift vs Factor Floor |
+|---------|---------------|---------------------|
+| 20d | 0.1009 | +0.0726 |
+| 60d | 0.1275 | +0.0883 |
+| 90d | 0.1808 | +0.1639 |
+
+**Gates for Future Models:**
+- Gate 1 (Factor): RankIC ≥ 0.02 for ≥2 horizons
+- Gate 2 (ML): Any horizon RankIC ≥ 0.05 or within 0.03 of LGB
+- Gate 3 (Practical): Churn ≤ 30%, stable across regimes
+
+**Artifacts:** `evaluation_outputs/chapter7_tabular_lgb_full/` (frozen with git tag)
+
+**Status:** FROZEN (Jan 5, 2026) - Immutable ML baseline reference
+
+---
+
+## Chapter 8: Kronos (Time Series Foundation Model) ✅ PHASE 2 COMPLETE
+
+**Purpose:** Integrate Kronos foundation model for OHLCV/K-line price dynamics prediction
+
+### Current Status: Phase 2 Kronos Adapter (100% Complete)
+
+**Phase 1: Data Plumbing ✅ COMPLETE**
+1. ✅ `PricesStore` implementation (`src/data/prices_store.py`)
+2. ✅ Global trading calendar loader (`src/data/trading_calendar.py`)
+3. ✅ Test suites (34 tests: 18 + 16, all passing)
+4. ✅ Prices table added to DuckDB (243,101 rows, 100 tickers)
+5. ✅ Critical bugs fixed (INSERT statement, date type handling)
+
+**Phase 2: Kronos Adapter ✅ COMPLETE**
+1. ✅ `KronosAdapter` class (`src/models/kronos_adapter.py`, 514 lines)
+   - Batch inference with `predict_batch()`
+   - Uses PricesStore (NOT features_df) for OHLCV
+   - Uses global trading calendar (NO freq="B")
+   - Deterministic settings: T=0.0, top_p=1.0, sample_count=1
+   - Score formula: `(pred_close - spot_close) / spot_close`
+2. ✅ `kronos_scoring_function` matching `run_experiment()` contract
+3. ✅ Single-stock sanity test (`scripts/test_kronos_single_stock.py`)
+   - Works in stub mode without Kronos installed
+4. ✅ Comprehensive test suite (20 tests: 19 passed, 1 skipped)
+   - `tests/test_kronos_adapter.py` (464 lines)
+   - All non-negotiables verified
+5. ✅ Documentation complete
+   - `CHAPTER_8_PHASE2_COMPLETE.md`
+
+**Phase 3: Evaluation Integration ✅ COMPLETE**
 
 **Deliverables:**
-1. **Implement `tabular_lgb` Baseline** ✅ COMPLETE
-   - LightGBM Regressor with time-decay sample weighting
-   - Per-fold training using walk-forward splits (purging/embargo/maturity)
-   - Horizon-specific models (separate for 20/60/90d)
-   - Fixed hyperparameters (no tuning in baseline): n_estimators=100, lr=0.05, max_depth=5
-   - **Implementation:** `src/evaluation/baselines.py` (ML baselines section)
-   - **Tests:** `tests/test_ml_baselines.py` (13 tests, all passing)
-   
-2. **Formalize Gating Policy** ✅ COMPLETE
-   - Factor gate: `median_RankIC(best_factor) ≥ 0.02`
-   - ML gate: `median_RankIC(tabular_lgb) ≥ 0.05`
-   - TSFM rule (Chapters 8-12): Must beat tuned ML baseline
-   - **Implementation:** `src/evaluation/run_evaluation.py` (`compute_acceptance_verdict`)
-   
-3. **FULL_MODE Execution + Freeze** ✅ COMPLETE
-   - Script to run `tabular_lgb` and generate baseline reference
-   - Loads REAL DuckDB data, runs monthly + quarterly cadences
-   - Compares vs frozen Chapter 6 baseline floor
-   - **Implementation:** `scripts/run_chapter7_tabular_lgb.py`
-   - **Tests:** `tests/test_chapter7_script.py` (3 tests, all passing)
-   - **Total Tests:** 429/429 passing
+- ✅ `scripts/run_chapter8_kronos.py` (745 lines) - Walk-forward evaluation runner
+- ✅ Core metrics: RankIC/IC stability, quintile spread, churn, cost survival, regime slices
+- ✅ Leak tripwires (negative controls):
+  - Shuffle-within-date → RankIC ≈ 0
+  - +1 trading-day lag → RankIC collapses
+- ✅ Momentum-clone check (correlation vs frozen factor baselines)
+- ✅ SMOKE evaluation verified (19,110 eval rows, 3 folds)
+- ✅ Phase 2 robustness tweaks applied (per-ticker timestamps, stub predictor, diagnostics)
 
-**ML Baseline Floor (FROZEN):**
+**Phase 4: Evaluation & Diagnosis ✅ COMPLETE**
 
-| **Horizon** | **tabular_lgb (Monthly)** | **Lift vs Factor Floor** |
-|-------------|---------------------------|--------------------------|
-| **20d** | 0.1009 | **+0.0726** (+256%) |
-| **60d** | 0.1275 | **+0.0883** (+225%) |
-| **90d** | 0.1808 | **+0.1639** (+970%) |
+**Micro-Test Results (60 predictions, 3 dates):**
+- ✅ Technical integration: **WORKING** (all predictions generated)
+- ❌ Signal quality: **INSUFFICIENT** (RankIC ~ -0.05, near zero)
+- ⚠️ Root cause: **Mean-reversion bias** during momentum regime
 
-**Frozen Artifacts:** `evaluation_outputs/chapter7_tabular_lgb_full/` (tracked in git)
-
-**Acceptance Criteria (PASSED):**
-- ✅ `tabular_lgb` RankIC ≥ 0.05 (ML gate) - **PASSED** (all horizons)
-- ✅ Beats momentum baselines on all 3 horizons - **PASSED**
-- ✅ Cost survival: 6.4%/45.9%/56.9% (20d/60d/90d)
-- ✅ Churn: 0.20 (well below 0.30 threshold)
-
-**Reference:** See `evaluation_outputs/chapter7_tabular_lgb_full/BASELINE_REFERENCE.md`
-
----
-
-## 📋 Planned (TODO)
-
-### Pre-Chapter-8: Feature Store Expansion ✅ COMPLETE
-
-**Final State (Jan 7, 2026):**
-- ✅ DuckDB expanded to **52 features** (was 7 in Chapter 7 freeze)
-- ✅ 201,307 feature rows, 600,855 labels, 2,386 regime rows
-- ✅ Date range: 2016-01-04 to 2025-06-30
-- ✅ Chapter 7 baseline frozen and preserved (backup at `data/features_chapter7_freeze.duckdb`)
-- ✅ Data hash: `a6142358f0e9ac57...` (current production)
-
-**Completed Batches:**
-- Batch 1+2 (Jan 2): Price/Volume + Missingness (9 features)
-- Batch 3 (Jan 2): Events/Earnings (12 features)
-- Batch 4 (Jan 2): Regime/Macro (12 features)
-- Batch 5 (Jan 7): Fundamentals Phase 1 (9 features) - validated stepwise behavior
-
-**Required Before Chapter 8:**
-
-**Priority 1: Price/Volume Features (14 total)** ✅ COMPLETE (Jan 2, 2026)
-- [x] Add `vol_of_vol` (volatility of volatility)
-- [x] Add `max_drawdown_60d` (drawdown features)
-- [x] Add `dist_from_high_60d` (distance from high)
-- [x] Add `adv_60d` (60-day ADV)
-- [x] Add `rel_strength_1m`, `rel_strength_3m` (relative strength vs universe)
-- [x] Add `beta_252d` (beta vs QQQ - placeholder, set to None pending benchmark merge)
-
-**Priority 2: Events/Earnings Features (12 total) - Critical for Earnings Gap Issue** ✅ COMPLETE (Jan 2, 2026)
-- [x] Add `days_to_earnings`, `days_since_earnings` (earnings timing) - 100% coverage
-- [x] Add `in_pead_window`, `pead_window_day` (post-earnings drift) - 50% coverage (correct: only when within PEAD window)
-- [x] Add `last_surprise_pct`, `avg_surprise_4q`, `surprise_streak`, `surprise_zscore`, `earnings_vol` (surprise history)
-- [x] Add `days_since_10k`, `days_since_10q`, `reports_bmo` (filing recency)
-
-**Priority 3: Regime/Macro Features (12 total)** ✅ COMPLETE (Jan 2, 2026)
-- [x] Add VIX features: `vix_level`, `vix_percentile`, `vix_change_5d`, `vix_regime`
-- [x] Add market features: `market_return_5d/21d/63d`, `market_vol_21d`, `market_regime`
-- [x] Add technical: `above_ma_50`, `above_ma_200`, `ma_50_200_cross`
-- [ ] ~~Sector rotation: `tech_vs_staples`, `tech_vs_utilities`, `risk_on_indicator`~~ (Deferred - needs sector ETF data)
-
-**Batch 4 Validation (Jan 2, 2026):**
-- [x] Unit tests pass (429 passed)
-- [x] Chapter 7 smoke test passes
-- [x] Regime PIT sniff tests pass (per-date consistency, backward windows, no leakage)
-- [x] All risks mitigated (calendar alignment, merge semantics)
-- See: `BATCH4_VALIDATION_COMPLETE.md`
-
-**Priority 4: Fundamentals (7 total) - FMP Premium Available** ⚠️ HIGH RISK
-- [x] Phase 1: `gross_margin_vs_sector`, `operating_margin_vs_sector` (filings-only) ✅ IMPLEMENTED
-- [x] Phase 1: `revenue_growth_vs_sector`, `roe_zscore` (filings-only) ✅ IMPLEMENTED
-- [x] Phase 1: `sector` (static from profile, documented limitation) ✅ IMPLEMENTED
-- [ ] Phase 2: `pe_zscore_3y`, `pe_vs_sector`, `ps_vs_sector` (requires PIT-safe price + shares)
-
-**⚠️ Batch 5 PIT Safety Implementation:**
-- Phase 1 (filings-only): Uses TTM (sum of 4 quarters), forward-fill between filings
-- Phase 2 (valuation): PENDING - requires as-of close from features_df + shares from filings
-- Sector z-scores: Minimum 5 tickers per sector, else NaN
-- See: `BATCH5_PLAN.md` for detailed implementation plan
-
-**Deferred Features:**
-- Sector rotation: `tech_vs_staples`, `tech_vs_utilities`, `risk_on_indicator` 
-- Reason: Requires sector ETF data (XLK, XLP, XLU) not in pipeline
-
-**Priority 5: Missingness (2 total) - Diagnostic Only** ✅ COMPLETE (Jan 2, 2026)
-- [x] Add `coverage_pct` (% non-null features)
-- [x] Add `is_new_stock` (<252 trading days)
-
-**Implementation:**
-```bash
-# Expand scripts/build_features_duckdb.py to call:
-# - src/features/price_features.py (Priority 1)
-# - src/features/event_features.py (Priority 2)
-# - src/features/regime_features.py (Priority 3)
-# - src/features/fundamental_features.py (Priority 4, needs FMP Premium)
-# - src/features/missingness.py (Priority 5)
-
-# Then rebuild DuckDB:
-python scripts/build_features_duckdb.py --auto-normalize-splits
+**Key Finding:**
+```
+Date           RankIC    p-value   Verdict
+──────────────────────────────────────────
+2024-02-01    -0.6692    0.0013    ❌ Strongly INVERTED (significant!)
+2024-03-01    +0.2586    0.2709    ⚠️ Weak positive
+2024-04-01    +0.1805    0.4465    ⚠️ Weak positive
+──────────────────────────────────────────
+OVERALL       -0.0530    0.6875    ❌ Near zero
 ```
 
-**Status Update (Jan 7, 2026):**
-- ✅ Batch 1+2 complete: 9 new features added (price/volume + missingness)
-- ✅ Batch 3 complete: 12 event/earnings features added
-- ✅ Batch 4 complete: 12 regime/macro features added
-- ✅ Batch 5 Phase 1 COMPLETE + VALIDATED: 9 fundamental features (4 raw TTM + 4 z-scores + sector)
-- ⏳ Batch 5 Phase 2 DEFERRED: 3 valuation features (P/E, P/S) - needs PIT-safe price/shares
-- ⏳ Deferred: 3 sector rotation features (needs ETF data)
-- ✅ DuckDB rebuild: COMPLETE (52 columns, 201K rows)
-- ✅ Frozen baseline preserved: `data/features_chapter7_freeze.duckdb`
-- ✅ Tests passing: 429/429
-- ✅ Chapter 6 REAL closure complete with baseline floor frozen
+**Diagnosis:** Kronos predicted AMD (-27%), NVDA (-26%), META (-19%) would DROP during the Feb 2024 AI rally. Actually: AMD +13%, NVDA +25%, META +22%. Mean-reversion bias baked into model.
 
-**Note:** Chapter 7 baseline (`tabular_lgb`) is frozen and only uses 13 features. Expanding DuckDB does NOT invalidate frozen artifacts. The frozen 7-feature snapshot is backed up at `data/features_chapter7_freeze.duckdb` for exact reproducibility.
+**Key Discovery (Jan 9, 2026):** The [Kronos paper](https://arxiv.org/html/2508.02739v1) uses **FINE-TUNED** models, not base pre-trained! From `Kronos/finetune/config.py`:
+- Train for 30 epochs on target market (CSI300)
+- Test on fine-tuned model, not base
+- Even with paper's config (lookback=90, horizon=10, T=0.6): RankIC = -0.56 (still negative)
 
-**Validation Documents:**
-- `BATCH5_VALIDATION_COMPLETE.md` - Stepwise behavior validated
-- `BATCH5_BUGFIX.md` - 5 bugs fixed (PIT safety, filing classification, etc.)
-
----
-
-### Chapter 8: Kronos Integration 🟢 READY TO START
-**Goal:** Integrate Kronos foundation model for K-line price dynamics prediction.
-
-**Prerequisites:** ✅ ALL MET
-- ✅ Chapter 6 closed with baseline floor frozen
-- ✅ Chapter 7 baseline frozen (ML floor to beat: 0.1009/0.1275/0.1808)
-- ✅ Feature store expanded (52 features, 201K rows)
-- ✅ OHLCV data available in DuckDB
-- ✅ Tests passing (429/429)
+**Root Cause:** Base model not calibrated for US stocks without fine-tuning. Would require significant compute to fine-tune on our data.
 
 **Deliverables:**
-- [ ] Kronos model adapter (OHLCV → embedding → horizon-specific heads)
-- [ ] ReVIN normalization (rolling mean/std for price level invariance)
-- [ ] Inference pipeline (batch processing, caching)
-- [ ] Integration with evaluation pipeline (must use frozen Chapter 6 framework)
-- [ ] Run FULL_MODE and compare vs `tabular_lgb` baseline
+1. ✅ Micro-test script (`scripts/test_kronos_micro.py`)
+2. ✅ RankIC computation (`scripts/compute_kronos_rankic.py`)
+3. ✅ Diagnosis scripts (`scripts/diagnose_kronos_predictions.py`, `scripts/inspect_kronos_output.py`)
+4. ✅ Paper config test (`scripts/test_kronos_paper_config.py`)
+5. ✅ Full analysis documents:
+   - `KRONOS_DIAGNOSIS_RESULTS.md`
+   - `KRONOS_ROOT_CAUSE_ANALYSIS.md`
+   - `KRONOS_FINAL_INVESTIGATION.md`
+   - `documentation/CHAPTER_8_FINAL.md`
 
-**Acceptance Gates:**
-- Gate 1: Zero-shot RankIC ≥ 0.02 (factor baseline)
-- Gate 2: RankIC ≥ 0.05 (ML gate)
-- Gate 3: Approach `tabular_lgb` (≥0.08/0.10/0.15 for 20d/60d/90d)
+**Chapter 8 Conclusion:**
+- **Integration:** ✅ Complete (technically working)
+- **Signal Quality:** ❌ Does not meet gates (RankIC < 0.02)
+- **Root Cause:** Base model needs fine-tuning (paper uses fine-tuned models)
+- **Investigation:** Tested paper's config (lookback=90, horizon=10, T=0.6) - still fails
+- **Decision:** Document negative result, proceed to Chapter 9 (FinText)
 
-**Reference:** See `CHAPTER_8_PLAN.md` for detailed implementation plan
+**Gate Results:**
+- Gate 1 (RankIC ≥ 0.02): ❌ FAIL (-0.05)
+- Gate 2 (RankIC ≥ 0.05 or within 0.03 of LGB): ❌ FAIL  
+- Gate 3 (Churn ≤ 30%): N/A (not running full eval)
 
----
+**Positive Takeaways:**
+- Kronos IS learning something (Feb 1 RankIC = -0.67 is significant!)
+- Not random noise - consistent mean-reversion view
+- Technical integration complete and reusable
+- Pipeline validated: PricesStore, trading calendar, scoring function
+- **Future option:** Fine-tune Kronos on US data (requires GPU compute, 30 epochs)
+- **Alternative:** Use as contrarian signal in mean-reverting regimes
 
-### Chapter 9: FinText-TSFM Integration
-**Goal:** Integrate FinText time series foundation model for return structure prediction.
+**References:**
+- GitHub: https://github.com/shiyu-coder/Kronos
+- Paper: https://arxiv.org/html/2508.02739v1
+- Full Analysis: `KRONOS_DIAGNOSIS_RESULTS.md`
 
-**Deliverables:**
-- [ ] FinText model adapter (time series → embedding → horizon-specific heads)
-- [ ] Inference pipeline (batch processing, caching)
-- [ ] Integration with evaluation pipeline (must use frozen Chapter 6 framework)
-- [ ] Run FULL_MODE and compare vs `tabular_lgb` baseline
-
-**Acceptance Gate:** Median RankIC ≥ 0.05 (must beat ML baseline)
-
----
-
-### Chapter 10: Context Features (Tabular)
-**Goal:** Add fundamentals and macro regime context to complement price/time-series signals.
-
-**Deliverables:**
-- [ ] Fundamental features: P/E, P/S, P/B relative to sector
-- [ ] Macro features: Interest rates, unemployment, sentiment
-- [ ] Tabular model trained on context features
-- [ ] Integration with evaluation pipeline
-- [ ] Run FULL_MODE and compare vs `tabular_lgb` baseline
-
-**Acceptance Gate:** Median RankIC ≥ 0.05 (must beat ML baseline)
+**Status:** 100% COMPLETE - Negative result documented, proceeding to Chapter 9
 
 ---
 
-### Chapter 11: Fusion Model
-**Goal:** Combine Kronos, FinText, and tabular context into a single fusion model.
+## Chapter 9: FinText-TSFM (Return Structure) ✅ COMPLETE
 
-**Deliverables:**
-- [ ] Fusion architecture (stacking, weighted average, or learned fusion)
-- [ ] Per-fold training with time-decay weighting
-- [ ] Regime-aware fusion (different weights for different market conditions)
-- [ ] Integration with evaluation pipeline
-- [ ] Run FULL_MODE and compare vs individual models
+**Purpose:** Integrate FinText-TSFM foundation models (finance-native pre-trained Chronos) for daily excess return forecasting
 
-**Acceptance Gate:** Median RankIC > best individual model by ≥ 0.01
+**Why FinText (not more Kronos tuning):**
+- Kronos (Ch8) showed generic TSFM fails zero-shot on US stocks (mean-reversion bias)
+- FinText models are pre-trained FROM SCRATCH on 2B+ financial excess return observations
+- Year-specific models (2000-2023) are inherently PIT-safe
+- Input = daily excess returns (matches our label definition exactly)
+- Paper: "Re(Visiting) TSFMs in Finance" (Rahimikia et al., 2025, SSRN 5770562)
 
----
+**Model Selection:**
+- Primary: `FinText/Chronos_Small_{YEAR}_US` (46M params, U.S. excess returns)
+- Architecture: Amazon Chronos (T5-based), finance-pre-trained by FinText team
+- HuggingFace: [huggingface.co/FinText](https://huggingface.co/FinText) (613 models)
+- GitHub: [DeepIntoStreams/TSFM_Finance](https://github.com/DeepIntoStreams/TSFM_Finance)
 
-### Chapter 12: Regime-Aware Ensembling
-**Goal:** Dynamic weighting of models based on detected market regime.
+**Completed Deliverables:**
 
-**Deliverables:**
-- [ ] Regime detection (VIX, trend, volatility, earnings window)
-- [ ] Per-regime model performance analysis
-- [ ] Dynamic ensemble weights (offline training, online application)
-- [ ] Integration with evaluation pipeline
-- [ ] Run FULL_MODE and compare vs static fusion
+Phase 1: Data Plumbing ✅ (Feb 16, 2026)
+- [x] Add QQQ benchmark to DuckDB prices table (2,890 rows, 2014-2025)
+- [x] `src/data/excess_return_store.py` - Daily excess return sequences (384 lines)
+- [x] Unit tests: 30 passing (init, correctness, PIT, batch, cache, diagnostics)
 
-**Acceptance Gate:** Median RankIC > static fusion by ≥ 0.005
+Phase 2: FinText Adapter ✅ (Feb 16, 2026)
+- [x] Install `chronos-forecasting` 2.2.2 (torch upgraded to 2.2.2)
+- [x] `src/models/fintext_adapter.py` - Year-aware model loading + inference (569 lines)
+- [x] `fintext_scoring_function()` for `run_experiment()` integration
+- [x] Stub mode + StubChronosPredictor for testing without model download
+- [x] Configurable score aggregation (median/mean/trimmed_mean)
+- [x] Unit tests: 48 passing
 
----
+Phase 3: Evaluation Integration ✅ (Feb 16, 2026)
+- [x] `scripts/run_chapter9_fintext.py` - Walk-forward evaluation runner (567 lines)
+- [x] SMOKE evaluation (3 folds, pipeline verified)
+- [x] Leak tripwires (shuffle + lag + year-mismatch) - all passing
 
-### Chapter 13: Calibration & Confidence
-**Goal:** Produce calibrated probability distributions and confidence intervals.
+Phase 4: Signal Quality Gates ✅ (Feb 16, 2026)
+- [x] EMA score smoothing (half-life=5d) reduces churn from 65-75% → 10-20%
+- [x] `scripts/evaluate_fintext_gates.py` - Gate evaluation & tripwire script
+- [x] All 3 gates PASS, all 3 tripwires PASS
 
-**Deliverables:**
-- [ ] Calibration layer (isotonic regression, Platt scaling)
-- [ ] Uncertainty quantification (ensemble variance, dropout, conformal prediction)
-- [ ] Confidence stratification (high/medium/low confidence signals)
-- [ ] Backtest analysis stratified by confidence
+Phase 5: Ablation Studies ✅ (Feb 17, 2026)
+- [x] 12-variant ablation matrix across 6 axes
+- [x] `scripts/run_chapter9_ablations.py` — Systematic ablation runner
+- [x] Optimal: trimmed_mean + US + 21d lookback + EMA(5) + Small model
 
-**Acceptance Gate:** Calibration error < 5%, high-confidence signals outperform by ≥ 0.02 RankIC
+Phase 6: Freeze & Documentation ✅ (Feb 17, 2026)
+- [x] Sections 9.9–9.11 complete (implementation phases, file checklist, scope)
+- [x] Honest FinText vs LGB comparison documented
+- [x] All documentation updated
 
----
-
-### Chapter 14: Production Monitoring & Alerts
-**Goal:** Real-time monitoring, drift detection, and automated alerts.
-
-**Deliverables:**
-- [ ] Data drift detection (feature distributions, missing data)
-- [ ] Model drift detection (IC decay, prediction distribution shifts)
-- [ ] Automated alerts (email, Slack, PagerDuty)
-- [ ] Dashboard (Streamlit, Plotly Dash, or similar)
-- [ ] Incident response runbook
-
-**Acceptance Gate:** Alert on IC drop > 0.01 within 1 trading day
-
----
-
-## 📊 Test Coverage
-
-| Component | Tests | Status |
-|-----------|-------|--------|
-| **Infrastructure (Ch 1-4)** | 84/84 | ✅ |
-| **Features (Ch 5)** | 60/60 | ✅ |
-| **Evaluation (Ch 6)** | 269/269 | ✅ 🔒 FROZEN |
-| **Total** | **413/413** | ✅ |
-
----
-
-## 🎯 Success Metrics (Final System)
-
-### Primary Goals
-- **RankIC:** Median walk-forward RankIC ≥ 0.10 (0.05 ML baseline + 0.05 model lift)
-- **Net-of-Cost:** ≥ 80% of folds profitable after base costs (20 bps round-trip)
-- **Churn:** Median churn ≤ 0.25 (tradable portfolio turnover)
-- **Regime Robustness:** No catastrophic collapse (RankIC > 0 in all VIX/bull/bear buckets)
-
-### Secondary Goals
-- **Hit Rate @10:** ≥ 60% of Top-10 stocks have positive excess returns
-- **Quintile Spread:** Top - Bottom quintile spread ≥ 10% annualized
-- **Calibration:** Prediction distributions are well-calibrated (< 5% calibration error)
-- **Monitoring:** Automated alerts detect drift within 1 trading day
-
----
-
-## 🚀 Quick Start
-
-### Build DuckDB Feature Store (requires FMP Premium)
-```bash
-# Ensure FMP_KEYS is set in .env
-python scripts/build_features_duckdb.py \
-  --start-date 2014-01-01 \
-  --end-date 2025-06-30 \
-  --auto-normalize-splits
-```
-
-### Run Chapter 6 Closure (Baseline Reference)
-```bash
-# Uses frozen evaluation pipeline + real DuckDB data
-python scripts/run_chapter6_closure.py
-# Outputs: evaluation_outputs/chapter6_closure_real/
-```
-
-### Run Tests
-```bash
-# All 413 tests (includes Chapter 6 frozen tests)
-pytest tests/ -v
-
-# Chapter 6 only
-pytest tests/test_*.py -k evaluation -v
-```
-
-### Load Frozen Baseline Floor
+**Frozen Optimal Configuration:**
 ```python
-import json
-from pathlib import Path
+FinTextAdapter.from_pretrained(
+    model_size="Small",              # 46M params
+    model_dataset="US",              # US excess returns
+    lookback=21,                     # 1-month context
+    num_samples=20,                  # Distribution samples
+    score_aggregation="trimmed_mean",  # +25% vs median
+    horizon_strategy="single_step",
+)
+# EMA smoothing: half-life = 5 trading days
+```
 
-# Load frozen baseline floor
-floor_path = Path("evaluation_outputs/chapter6_closure_real/BASELINE_FLOOR.json")
-with floor_path.open() as f:
-    baseline_floor = json.load(f)
+**Final Metrics (Small + trimmed_mean + EMA, SMOKE 3 folds):**
 
-# Get RankIC to beat for a specific horizon
-horizon = 60
-best_baseline = baseline_floor["best_baseline_per_horizon"][str(horizon)]
-print(f"Your model must beat {best_baseline['baseline']} RankIC: {best_baseline['median_rankic']:.4f}")
-# Output: Your model must beat momentum_composite_monthly RankIC: 0.0392
+| Metric | FinText | LGB Baseline | Gap |
+|--------|---------|-------------|-----|
+| 20d RankIC | 0.0742 | 0.1009 | -0.027 |
+| 60d RankIC | 0.0820 | 0.1275 | -0.046 |
+| 90d RankIC | 0.0504 | 0.1808 | -0.130 |
+| Churn | 20% | 20% | same |
+| IC Stability (20d) | 76.2% pos | 16.9% | +59.3% |
+
+**Gate Results: ✅ ALL PASS**
+- Gate 1 (Factor Baseline): ✅ PASS (all 3 horizons RankIC ≥ 0.02)
+- Gate 2 (ML Baseline): ✅ PASS (20d within 0.027 of LGB; all ≥ 0.05)
+- Gate 3 (Practical): ✅ PASS (churn 20%)
+
+**Key Finding:** FinText does NOT beat LGB standalone (expected — zero-shot vs supervised). Value is as orthogonal signal for Chapter 11 fusion. FinText cannot overfit by construction; LGB's 90d RankIC 0.1808 likely has overfitting component.
+
+**Test Coverage:** 116 Chapter 9 tests + 461 project tests = **577 total ✅**
+
+**Files Created:** 12 files (6 required + 6 additional beyond outline)
+
+**Status:** ✅ COMPLETE (Feb 17, 2026) — Artifacts frozen, ready for Chapter 10/11
+**Documentation:** `documentation/CHAPTER_9.md`
+
+---
+
+## Chapter 10: NLP Sentiment Signal ✅ COMPLETE
+
+**Purpose:** Add text-based sentiment signal orthogonal to price/fundamental features
+
+**Model:** ProsusAI/FinBERT (pre-trained finance sentiment, zero-shot)
+
+**Data Sources:**
+- SEC EDGAR 8-K filings (free, unlimited, PIT-safe)
+- FinnHub company news API (free tier, 60 req/min)
+
+Phase 1: Sentiment Data Pipeline ✅ (Feb 17, 2026)
+- [x] `src/data/sentiment_store.py` — SEC + FinnHub collection pipeline
+- [x] `scripts/collect_sentiment_data.py` — Batch collection for universe
+- [x] Collected 77,904 records (2,575 SEC 8-K + 75,329 news articles)
+- [x] 100/100 tickers with news, 36/100 with SEC 8-K filings
+- [x] PIT-safe timestamps: SEC acceptanceDateTime + FinnHub publication time
+- [x] 28/28 tests passing
+
+Phase 2: FinBERT Sentiment Scoring ✅ (Feb 18, 2026)
+- [x] `src/models/finbert_scorer.py` — FinBERT scoring module (109M params)
+- [x] `scripts/score_sentiment_finbert.py` — Batch scoring with MPS GPU
+- [x] All 77,904 records scored using ProsusAI/finbert (zero-shot)
+- [x] MPS acceleration: 20 rec/s average, ~65 min total
+- [x] 22/22 tests passing (18 stub + 4 real model)
+
+Phase 3: Sentiment Feature Engineering ✅ (Feb 18, 2026)
+- [x] `src/features/sentiment_features.py` — 9 PIT-safe features
+- [x] `enrich_features_df()` integration point for evaluation pipeline
+- [x] 33/33 tests passing (30 stub + 3 real data)
+
+Phase 4: Walk-Forward Evaluation & Gates ✅ (Feb 18, 2026)
+- [x] `scripts/run_chapter10_sentiment.py` — Walk-forward evaluation runner
+- [x] `scripts/evaluate_sentiment_gates.py` — Gate checking + orthogonality
+- [x] SMOKE eval: 19,110 rows, 3 folds, 53 seconds
+- [x] Gate 3 (Practical): PASS (10% churn)
+- [x] Gates 1-2: FAIL standalone (expected for fusion-oriented signal)
+- [x] **Orthogonality: ρ < 0.16 vs all signals (HIGH fusion value)**
+- [x] 18/18 tests passing
+
+Phase 5: Freeze & Documentation ✅ (Feb 18, 2026)
+- [x] All artifacts frozen in `evaluation_outputs/chapter10_sentiment_smoke/`
+- [x] `gate_results.json` with full metrics + orthogonality
+- [x] `CHAPTER_10.md` complete (all 5 sections)
+- [x] ROADMAP updated
+
+**Key Finding:** Sentiment is weak standalone (negative RankIC in SMOKE window) but **highly orthogonal** to every existing signal (ρ < 0.16). This is the textbook use case for NLP sentiment in quant finance: fusion value, not standalone prediction.
+
+**Test Coverage:** 101 Chapter 10 tests (28 + 22 + 33 + 18) all passing
+
+**Status:** ✅ COMPLETE (Feb 18, 2026) — Ready for Chapter 11 Fusion
+**Documentation:** `documentation/CHAPTER_10.md`
+
+---
+
+## Chapter 11: Fusion Model ✅ COMPLETE
+
+**Purpose:** Combine LGB, FinText, and Sentiment signals; build expert interface for UQ pipeline
+
+**Completed Deliverables:**
+- Score alignment (SMOKE + FULL), fusion architecture (rank-avg, enriched LGB, stacking)
+- Residual archive (DuckDB) + AIStockForecasterExpert interface
+- 36 tests passing, gate evaluation with full metric profile
+- Shadow portfolio for all variants
+
+**Key Result:** LGB baseline wins across all metrics. Fusion Gate 4 FAIL — FinText (Chronos) has near-zero standalone signal (median RankIC 0.014 at 20d, ~0 at 60d). Learned Stacking nearly matches LGB (Ridge learned to discard weak sub-models). Infrastructure value delivered: residual archive, expert interface, disagreement proxy — all ready for Ch13 UQ.
+
+**Final Metrics (FULL, 109 folds — ALL-period; see DEV/FINAL holdout protocol for split):**
+
+| Model | 90d RankIC | IC Stability | Cost Survival | Shadow Sharpe |
+|-------|-----------|-------------|--------------|--------------|
+| LGB baseline | **0.1833** | **0.7972** | **79.8%** | **1.262** |
+| Learned Stacking | 0.1802 | 0.7961 | 79.9% | 1.143 |
+| Rank Avg 2 | 0.1173 | 0.6069 | 72.1% | 0.844 |
+
+⚠️ **Holdout note:** 90d RankIC collapses to −0.02 in FINAL (2024+). 20d shadow
+Sharpe holds at 1.91 in FINAL. See "DEV / FINAL Holdout Protocol" section.
+
+**Status:** ✅ COMPLETE (Feb 19, 2026) — Documentation: `documentation/CHAPTER_11.md`
+
+---
+
+## Chapter 12: Regime-Aware Analysis & Heuristic Ensemble ✅ COMPLETE
+
+**Purpose:** Understand when LGB fails by regime, build heuristic regime baseline for Ch13 DEUP comparison
+
+**Completed Deliverables:**
+- 12.1: Regime-conditional performance diagnostics (18 tests)
+- 12.2: Regime stress tests on shadow portfolio (22 tests)
+- 12.3: Regime-aware heuristic baselines — vol-sizing + regime blending (24 tests)
+- 12.4: Freeze — `regime_context.parquet` (201K rows, 16 features) + documentation (11 tests)
+
+**Key Results:**
+
+| Finding | Detail |
+|---------|--------|
+| LGB 2.6× better in calm markets | 20d RankIC: 0.182 (low-VIX) vs 0.071 (high-VIX) |
+| Bear > bull for stock differentiation | 20d RankIC: 0.110 (bear) vs 0.060 (bull) |
+| VIX percentile predicts model error | ρ = −0.21 with 60d RankIC (significant) |
+| Vol-sizing improves risk profile | Sharpe 2.65→2.73, max DD −22%→−18% |
+| Regime blending fails | All metrics worse — momentum dilutes LGB signal |
+
+**DEUP ablation baseline:** Vol-sized LGB (Sharpe 2.73, max DD −18.1% — ALL-period). Chapter 13 must beat this.
+
+⚠️ **Holdout note:** The above regime diagnostics and heuristic metrics are computed
+over the full 109-fold period. The DEV/FINAL holdout analysis (appended to CHAPTER_12.md)
+reveals that LGB's signal collapses at 60d/90d in 2024+. All regime findings should be
+understood as primarily driven by the DEV period (2016–2023).
+
+**Test Coverage:** 75 tests (18 + 22 + 24 + 11) all passing
+
+**Status:** ✅ COMPLETE (Feb 19, 2026) — Documentation: `documentation/CHAPTER_12.md`
+
+---
+
+## Chapter 13: Calibration & Confidence ⏳ TODO
+
+**Purpose:** Calibrate return distributions and confidence scores
+
+**Planned Deliverables:**
+- Quantile calibration
+- Confidence stratification
+- High-confidence bucket evaluation
+ - **Confidence-conditioned Shadow Portfolio slices** (evaluation-only): Sharpe/IR for high-confidence subset vs all signals, coverage/abstain diagnostics
+
+**Target:** Quantile coverage error < 5%, high-confidence outperformance
+
+**Status:** Not started
+
+---
+
+## Chapter 14: Monitoring & Research Ops ⏳ TODO
+
+**Purpose:** Production monitoring and drift detection
+
+**Planned Deliverables:**
+- Prediction logging with timestamps
+- Matured-label scoring
+- Feature/performance drift detection
+- Alerts (RankIC decay, calibration breakdown)
+ - **Monitoring KPIs (Signal + Shadow Portfolio)**: rolling Sharpe/IR drift, drawdown alarms, turnover/cost-drag spikes (evaluation-only until productionized)
+
+**Status:** Not started
+
+---
+
+## Chapter 15: Outputs & Interfaces ⏳ TODO
+
+**Purpose:** Final output interfaces and traceability
+
+**Planned Deliverables:**
+- Ranked stock lists
+- Per-stock explanation summaries
+- Batch scoring interface
+- Full traceability
+
+**Status:** Not started
+
+---
+
+## Chapter 16: Global Research Acceptance Criteria ⏳ TODO
+
+**Purpose:** Final acceptance gate — prove signal isn't repackaged factor exposure
+
+**Planned Deliverables:**
+- Fama-French 5-factor regression on shadow portfolio returns (Mkt-RF, SMB, HML, RMW, CMA)
+- Alpha intercept significance (t-stat > 2)
+- Factor loading documentation
+- R² analysis (low = genuinely idiosyncratic alpha)
+- Run on LGB baseline + vol-sized shadow portfolio returns
+- Report on both DEV and FINAL period returns
+
+**Prerequisite:** Chapters 11-13 complete (need shadow portfolio returns)
+
+**Estimated effort:** ~1 day
+
+**Status:** Not started
+
+---
+
+## Chapter 17: Bayesian UQ Extensions & Model Comparisons ⏳ TODO
+
+**Purpose:** Extend DEUP-based UQ with Bayesian uncertainty estimation on the neural
+sub-models (FinText/Chronos, FinBERT) and produce a definitive UQ method comparison.
+
+**Context:** The Kotelevskii & Panov (ICLR 2025) risk decomposition framework offers 9
+approximation variants for Bayesian risk estimation, most requiring multiple forward passes
+through a neural network. Chapter 13 uses DEUP because the primary model (LightGBM)
+doesn't support Bayesian inference. This chapter tests whether Bayesian approaches on the
+available NNs add value.
+
+**Planned Deliverables:**
+- 17.1 MC Dropout on FinBERT (10-20 passes, sentiment variance as epistemic UQ)
+- 17.2 MC Dropout on FinText/Chronos (return forecast distribution)
+- 17.3 Bayesian Risk Estimates (R_Bayes aleatoric + R_Exc epistemic via Bregman divergence)
+- 17.4 Seed Ensemble as Bregman Information (reframe Ch13 baseline #7 formally)
+- 17.5 NGBoost Comparison (optional — natively probabilistic tree model)
+- 17.6 Definitive UQ comparison table: DEUP vs Vol-sizing vs EPBD vs Bregman Info vs MC Dropout vs NGBoost
+
+**Key thesis framing:** "We compare three UQ paradigms: (1) DEUP-based excess risk for tree
+models, (2) ensemble disagreement as EPBD/Bregman Information approximations, (3) Bayesian
+posterior sampling via MC Dropout on neural sub-models. Primary finding may be that DEUP on
+a strong base model outperforms Bayesian UQ on weak sub-models — model strength matters more
+than UQ sophistication."
+
+**Prerequisite:** Chapter 13 DEUP complete with all diagnostics
+
+**Estimated effort:** ~20-25 hours
+
+**Status:** Not started
+
+---
+
+## Next Actions
+
+**Completed (Feb 16-18) — Chapter 10:**
+1. ✅ Sentiment data pipeline: 77,904 records from SEC + FinnHub (28 tests)
+2. ✅ FinBERT scoring: MPS-accelerated, all records scored (22 tests)
+3. ✅ Feature engineering: 9 PIT-safe sentiment features (33 tests)
+4. ✅ Walk-forward evaluation: SMOKE mode + gates + orthogonality (18 tests)
+5. ✅ Freeze & documentation: CHAPTER_10.md + ROADMAP.md complete
+
+**Completed (Feb 19) — Chapter 12:**
+6. ✅ Regime-conditional performance diagnostics (VIX + market regime slicing)
+7. ✅ Shadow portfolio stress tests (corrected non-overlapping monthly Sharpe)
+8. ✅ Heuristic baselines (vol-sizing PASS, regime blending FAIL)
+9. ✅ regime_context.parquet frozen for Ch13 (201K rows, 100% coverage)
+
+**Chapter 13 Progress (Feb 19):**
+10. ✅ 13.0: Residual archive populated (591K LGB + 845K Rank Avg 2 + 845K Stacking rows)
+11. ✅ 13.1: g(x) error predictor trained walk-forward (89 folds, ρ=0.19 at 20d, cross_sectional_rank dominates)
+12. ✅ 13.2: Aleatoric baseline a(x) — 4 tiers tested, Tier 2 passes at 60d (ρ=0.317), empirical fallback at 20d/90d
+13. ✅ 13.3: Epistemic signal ê(x) — perfect quintile monotonicity (ρ=1.0), FINAL > DEV at all horizons, 14/14 sanity checks passed
+14. ✅ 13.4: Diagnostics — Disentanglement PASS (ê ≠ vol), baselines dominated 3–10×, stability PASS across all conditions, 98 total tests
+15. ✅ 13.4b: Expert health H(t) — per-date regime throttle, G(t)→0 by Apr 2024, 20d crisis detection works (lag ~1 month), 116 total tests
+16. ✅ 13.5: Conformal intervals — DEUP-norm reduces conditional coverage spread 25× (0.8% vs 20.2%), narrower intervals, 137 total tests
+17. ✅ 13.6: Regime trust gate finalized (AUROC 0.72 / 0.75 FINAL), portfolio sizing evaluated, 154 total tests
+18. ⏳ 13.7: Deployment policy + ablation (binary gate, gate+vol, gate+DEUP-cap) — NEXT
+Chapter 13 overall: **75% complete**
+
+**Chapter 13 outcome so far:**
+- ✅ **PASS:** Regime trust gate works (AUROC 0.72, monotonic buckets, FINAL > DEV).
+- ⚠️ **FAIL (honest):** Per-stock DEUP sizing does not beat vol sizing.
+
+**Notes on Ch13 Priority:**
+- Vol-sized LGB is the ablation baseline (Sharpe 2.73, max DD −18.1%)
+- VIX percentile is the strongest epistemic predictor (ρ = −0.21 with RankIC)
+- Per-stock vol_20d available in regime_context.parquet for aleatoric baseline
+- Risk attribution (Fama-French 5-factor) deferred to Chapter 16 acceptance gate
+- **DEV/FINAL holdout protocol established:** All chapters must report both DEV (pre-2024)
+  and FINAL (2024+) metrics. Signal collapses at 60d/90d in holdout; 20d is confirmed
+  (FINAL Sharpe 1.91). See "DEV / FINAL Holdout Protocol" section above.
+- **DEUP must detect the 2024 regime failure:** The holdout collapse is exactly the
+  scenario epistemic uncertainty should flag and abstain from.
+
+---
+
+## DEV / FINAL Holdout Protocol
+
+**Established:** February 19, 2026 (retroactive split)
+
+### Definition
+
+All evaluation is partitioned into two non-overlapping windows:
+
+| Window | Date Range | Months | Purpose |
+|--------|-----------|:------:|---------|
+| **DEV** | Feb 2016 – Dec 2023 | 95 | Research iteration (walk-forward folds visible during development) |
+| **FINAL** | Jan 2024 – Feb 2025 | 14 | One-shot confirmation (never optimized against) |
+
+**Cutoff:** `HOLDOUT_START = 2024-01-01`
+
+**Embargo clearance:** Last DEV fold's training window reaches ~Sep 2023
+(90 trading day embargo). First FINAL evaluation date is Jan 2024. No
+leakage from DEV training into FINAL labels.
+
+### Caveat: Retroactive (soft) holdout
+
+This split was established after 109-fold aggregate metrics were already
+examined during Chapters 7–12 development. It is therefore a **soft holdout**,
+not a true blind holdout. We never specifically optimized for 2024+ performance,
+but researcher degrees of freedom (model choice, features, hyperparameters)
+were informed by the full-period aggregate — which includes the holdout months.
+
+A true blind holdout would require freezing all decisions before evaluating
+the FINAL window. This protocol approximates that by committing to report
+DEV and FINAL separately going forward, and iterating only on DEV metrics.
+
+### Key findings (LGB baseline)
+
+**Signal metrics collapse at longer horizons in the holdout:**
+
+| Horizon | DEV Mean RankIC | FINAL Mean RankIC | Change |
+|---------|:--------------:|:----------------:|:------:|
+| 20d | 0.072 | 0.010 | −86% |
+| 60d | 0.160 | −0.005 | flips negative |
+| 90d | 0.192 | −0.021 | flips negative |
+
+**Shadow portfolio (20d) degrades but remains strongly positive:**
+
+| Split | Sharpe | Ann. Return | Max DD | Hit Rate |
+|-------|:------:|:----------:|:------:|:--------:|
+| DEV (95 mo) | 3.15 | 81.9% | −21.9% | 82.1% |
+| FINAL (14 mo) | 1.91 | 119.1% | −16.6% | 71.4% |
+
+**Year-by-year 90d RankIC reveals regime dependency, not pure overfitting:**
+
+| Year | 90d RankIC | Interpretation |
+|------|:---------:|----------------|
+| 2016 | 0.405 | Very high — limited training data |
+| 2017–2020 | 0.18–0.32 | Genuine strong signal across multiple years |
+| **2021** | **−0.071** | Failure — meme stock / tech mania |
+| 2022–2023 | 0.15–0.17 | Recovery, but weaker |
+| **2024** | **−0.006** | Signal collapses — AI thematic rally |
+| **2025** | **−0.139** | Actively wrong (32 days, insufficient sample) |
+
+**Interpretation:** The model has real signal in normal and bear markets
+(2017–2020, 2022–2023) but fails in strong thematic bull regimes (2021
+meme stocks, 2024–2025 AI rally) where cross-sectional dispersion collapses.
+This is regime dependency, not data leakage.
+
+### All models show the same pattern
+
+| Model | 20d FINAL | 60d FINAL | 90d FINAL |
+|-------|:---------:|:---------:|:---------:|
+| LGB baseline | 0.010 | −0.005 | −0.021 |
+| Rank Avg 2 | **0.031** | **0.018** | −0.009 |
+| Learned Stacking | 0.009 | −0.008 | −0.022 |
+
+Rank Avg 2 (which includes FinText) holds up best in the holdout at 20d and
+60d — the fusion with a zero-shot model provides some diversification value
+during regime shifts.
+
+### Overfitting vs Regime Shift Diagnostics (Feb 19, 2026)
+
+Three diagnostics run to separate overfitting from regime shift:
+
+1. **Retrain LGB on DEV-only → evaluate on FINAL:** Retrained model
+   performs WORSE (90d: −0.075) than walk-forward (−0.021). **Verdict:
+   regime shift, not leakage.** Walk-forward fold diversity actually helped.
+2. **Feature importance stability:** Rank correlation 0.95+ across all
+   time windows, same top-3 features (adv_20d, vol_60d, mom_12m) in every
+   period. **Verdict: model learned real, stable patterns, not noise.**
+3. **20d deep-dive on 2024:** 8/14 months positive at 20d vs only 4/14
+   at 90d. Signal oscillates with regime (strong in Jan–Feb, Nov–Dec;
+   negative in Mar–May, Jul). **Verdict: selective horizon failure confirms
+   regime dependency, not blanket overfitting.**
+
+**Combined conclusion:** The model learned genuine, economically interpretable
+patterns (momentum, volume, volatility) but those patterns broke during the
+2024 AI stock rally when cross-sectional dispersion collapsed. The "true"
+RankIC is probably 0.04–0.10, not the headline 0.18.
+
+Script: `scripts/run_holdout_diagnostics.py`
+Output: `evaluation_outputs/chapter12/holdout_diagnostics/holdout_diagnostics.json`
+
+### Rules going forward
+
+1. **All chapters report both DEV and FINAL metrics** side by side
+2. **Model iteration uses DEV only** — FINAL is evaluated once per chapter
+3. **Chapter 16 factor regression** uses FINAL period shadow returns
+4. **Failure threshold:** If FINAL shadow Sharpe drops below 1.0, the model
+   needs fundamental changes before proceeding
+5. **20d is the primary confirmed horizon** — longer horizons are promising
+   but unconfirmed in the holdout
+
+### Implications for the project
+
+1. **UQ is even more critical:** DEUP (Ch13) must detect these failure regimes
+   and reduce confidence / abstain. The 2024 collapse is exactly the scenario
+   epistemic uncertainty should flag.
+2. **20d is the most robust horizon:** Confirmed positive signal + Sharpe 1.91
+   in holdout. 60d/90d carry regime risk.
+3. **Factor regression (Ch16) becomes essential:** Need to confirm that the
+   surviving 20d alpha isn't just repackaged momentum.
+4. **The headline RankIC 0.18 at 90d is optimistically biased** by early-period
+   high values and the absence of regime-failure years from the effective
+   development narrative.
+5. **This finding strengthens the thesis:** "The model needs uncertainty
+   quantification" is exactly what the holdout degradation proves.
+
+---
+
+## Global Acceptance Criteria
+
+A model is considered **valid** if:
+- ✅ Median walk-forward RankIC exceeds best baseline by ≥ 0.02
+- ✅ Net-of-cost performance positive in ≥ 70% of folds
+- ✅ Top-10 ranking churn < 30% month-over-month
+- ✅ Performance degrades gracefully under regime shifts
+- ✅ No PIT or survivorship violations detected
+
+**Institutional-grade add-on (evaluation-only, from Chapter 11+):**
+- Shadow portfolio sanity: Sharpe/IR meaningfully > 0 and not driven by 1–2 months
+  - **Robustness check:** Report rolling 12-month Sharpe/IR (or 36-month if available). Must not rely on a single regime.
+  - This is evaluation-only reporting (no optimization target).
+
+**Risk attribution gate (Chapter 16):**
+- Fama-French 5-factor regression on shadow portfolio monthly returns
+- Alpha intercept must be positive and significant (t-stat > 2)
+- Factor loadings documented (momentum exposure acceptable if alpha survives)
+- R² documented (low = genuinely idiosyncratic alpha)
+- Existing `src/features/neutralization.py` covers feature-level attribution;
+  Ch16 adds portfolio-level return attribution as complementary proof
+
+---
+
+## Repository Structure
+
+```
+AI_Stock_Forecast/
+├── src/                           # Source code
+│   ├── data/                      # Data infrastructure ✅
+│   │   ├── prices_store.py       # NEW: Chapter 8 OHLCV store
+│   │   └── trading_calendar.py   # EXTENDED: Global calendar
+│   ├── features/                  # Feature engineering ✅
+│   ├── evaluation/                # Frozen evaluation pipeline 🔒
+│   ├── models/                    # Model implementations 🟡
+│   │   ├── kronos_adapter.py     # Chapter 8: Kronos adapter
+│   │   ├── fintext_adapter.py    # Chapter 9: FinText adapter
+│   │   └── finbert_scorer.py    # Chapter 10: FinBERT scorer
+│   ├── uncertainty/               # UQ components (Ch13) ⏳
+│   │   ├── __init__.py
+│   │   ├── deup_estimator.py    # g(x) error predictor (13.1)
+│   │   └── aleatoric_baseline.py # a(x) aleatoric noise (13.2)
+│   └── ...
+├── scripts/                       # Build & evaluation scripts
+│   ├── build_features_duckdb.py  # ✅ Feature store builder
+│   ├── add_prices_table_to_duckdb.py  # NEW: Add prices table
+│   └── ...
+├── tests/                         # 755+ passing tests ✅
+│   ├── test_prices_store.py      # Chapter 8: 18 tests
+│   ├── test_trading_calendar_kronos.py  # Chapter 8: 16 tests
+│   ├── test_excess_return_store.py     # Chapter 9: 29 tests
+│   ├── test_fintext_adapter.py         # Chapter 9: 41 tests
+│   ├── test_chapter9_evaluation.py     # Chapter 9: 7 tests
+│   ├── test_fintext_gates_tripwires.py # Chapter 9: 18 tests
+│   ├── test_ablation_framework.py      # Chapter 9: 17 tests
+│   ├── test_sentiment_store.py        # Chapter 10: 28 tests
+│   ├── test_finbert_scorer.py         # Chapter 10: 22 tests
+│   ├── test_sentiment_features.py     # Chapter 10: 33 tests
+│   └── test_chapter10_evaluation.py   # Chapter 10: 18 tests
+├── data/                          # Data storage (gitignored)
+│   └── features.duckdb            # Main feature store
+├── evaluation_outputs/            # Evaluation artifacts
+│   ├── chapter6_closure_real/    # 🔒 Frozen factor baseline
+│   └── chapter7_tabular_lgb_full/  # 🔒 Frozen ML baseline
+└── documentation/                 # Project documentation
+    ├── ROADMAP.md                # This file
+    ├── CHAPTER_8_*.md            # Chapter 8 docs
+    └── ...
 ```
 
 ---
 
-## 📚 Key Documents
+## Key Milestones
 
-| Document | Purpose |
-|----------|---------|
-| `CHAPTER_6_FREEZE.md` | Complete Chapter 6 freeze details (baseline floor, bugs fixed, reproducibility) |
-| `PROJECT_DOCUMENTATION.md` | Full system documentation (all chapters) |
-| `PROJECT_STRUCTURE.md` | Directory structure + implementation status |
-| `AI_Stock_Forecaster_(FinText_+_Kronos_+_Context).ipynb` | Main notebook (with Chapter 6 freeze banner) |
-| `CHAPTER_6_PHASE6_COMPLETE.md` | Chapter 6 implementation summary |
+- ✅ **Dec 30, 2025:** Chapter 6 evaluation framework frozen
+- ✅ **Jan 5, 2026:** Chapter 7 ML baseline frozen
+- ✅ **Jan 9, 2026:** Chapter 8 Kronos complete (negative result documented)
+- ✅ **Feb 17, 2026:** Chapter 9 FinText-TSFM COMPLETE (all sections 9.0–9.11, 545 tests, all gates pass)
+- ✅ **Feb 18, 2026:** Chapter 10 NLP Sentiment COMPLETE (5 phases, 101 tests, orthogonality confirmed)
+- ✅ **Feb 19, 2026:** Chapter 11 Fusion COMPLETE (LGB wins; fusion infrastructure + expert interface delivered)
+- ✅ **Feb 19, 2026:** Chapter 12 Regime Analysis COMPLETE (75 tests, vol-sized heuristic baseline frozen)
+- ⏳ **Feb 20, 2026 (target):** Chapter 13 Calibration & DEUP
+- ⏳ **TBD:** Chapter 16 Acceptance Criteria & Factor Attribution
+- ⏳ **TBD:** Chapter 17 Bayesian UQ Extensions & Model Comparisons
 
 ---
 
-**Next Action:** Implement Chapter 8 (Kronos integration)  
-**Questions?** See `CHAPTER_8_PLAN.md` for detailed implementation plan.
-
+**END OF ROADMAP**

@@ -29,9 +29,12 @@ Polygon is used as the symbol master for universe membership queries.
 
 from .fmp_client import FMPClient, FMPError, RateLimitError
 from .pit_store import DuckDBPITStore
-from .trading_calendar import TradingCalendarImpl
+from .trading_calendar import TradingCalendarImpl, load_global_trading_calendar
 from .event_store import EventStore, Event, EventType, EventTiming
 from .security_master import SecurityMaster, SecurityIdentifier, SecurityEventType
+from .prices_store import PricesStore
+from .excess_return_store import ExcessReturnStore
+from .sentiment_store import SentimentDataStore, TextRecord
 
 # Lazy imports for optional clients (avoids import errors if deps missing)
 def get_alphavantage_client():
@@ -78,8 +81,15 @@ __all__ = [
     "SecurityMaster",
     "SecurityIdentifier",
     "SecurityEventType",
+    # Chapter 8-9: Model inference stores
+    "PricesStore",
+    "ExcessReturnStore",
+    # Chapter 10: Sentiment data
+    "SentimentDataStore",
+    "TextRecord",
     # Calendar
     "TradingCalendarImpl",
+    "load_global_trading_calendar",
     # Factory functions
     "get_alphavantage_client",
     "get_sec_client",

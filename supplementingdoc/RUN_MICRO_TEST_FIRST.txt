@@ -1,0 +1,89 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║         🚨 IMPORTANT: RUN MICRO-TEST FIRST! 🚨                       ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📊 DISCOVERY: Kronos is VERY SLOW on CPU
+
+  - ✅ Code works perfectly (all bugs fixed!)
+  - ⚠️  BUT: ~23 minutes per date for 98 tickers on Mac CPU
+  - ⏰ SMOKE mode = ~72 hours (3 days!)
+  - ⏰ FULL mode = ~2-3 weeks!
+
+
+🎯 SOLUTION: Run Micro-Test First (~15 minutes)
+
+cd /Users/ursinasanderink/Downloads/AI\ Stock\ Forecast
+export PYTHONPATH="$(pwd)/Kronos:$PYTHONPATH"
+
+python scripts/test_kronos_micro.py
+
+
+📋 What Micro-Test Does:
+
+  ✓ Tests:     3 dates × 20 tickers × 1 horizon
+  ✓ Time:      ~15 minutes
+  ✓ Output:    kronos_micro_test.csv
+  ✓ Validates: Model works + scores are meaningful
+
+
+✅ Expected Results:
+
+  Score range:   [-0.15, +0.18]  (reasonable returns)
+  Score std:     0.045           (good variance, not degenerate)
+  Mixed signs:   Pos=28, Neg=32  (not all bullish/bearish)
+  
+  Sanity Checks:
+    ✓ PASS: Scores have reasonable variance
+    ✓ PASS: Score range is reasonable
+    ✓ PASS: Mean score magnitude is reasonable
+    ✓ PASS: Scores have mixed signs
+
+
+📊 After Micro-Test: Decide Next Step
+
+  Option A: SMOKE (single horizon) - 1 day on CPU
+    - Modify script to only use horizon=20
+    - python scripts/run_chapter8_kronos.py --mode smoke
+
+  Option B: Get GPU access - 2-4 hours for FULL!
+    - Google Colab (free), AWS (~$2-3), or university cluster
+    - 100x faster than CPU!
+
+  Option C: Skip full evaluation - use micro-test results
+    - Document that Kronos works
+    - Note CPU runtime limitations
+    - Move to Chapter 9
+
+
+⏱️  Runtime Comparison:
+
+  MICRO-TEST:                ~15 minutes    ← DO THIS FIRST! ✅
+  SMOKE (single horizon):    ~1 day         (CPU)
+  SMOKE (3 horizons):        ~3 days        (CPU)
+  FULL (GPU):                ~2-4 hours     (CUDA GPU)
+  FULL (CPU):                ~2-3 weeks     (not practical!)
+
+
+🚀 GPU Makes a HUGE Difference:
+
+  - CPU (Mac): ~23 min per date-horizon
+  - GPU (CUDA): ~1-2 min per date-horizon
+  - Speedup: 100-200x faster!
+
+
+📚 Documentation:
+
+  KRONOS_RUNTIME_GUIDE.md     ← Read this for detailed strategy
+  scripts/test_kronos_micro.py ← Micro-test script
+  ALL_FIXES_COMPLETE_FINAL.md  ← Updated with micro-test info
+
+
+╔══════════════════════════════════════════════════════════════════════╗
+║                                                                      ║
+║  🎯 ACTION: Run micro-test now (15 min) to validate Kronos!         ║
+║                                                                      ║
+║  python scripts/test_kronos_micro.py                                 ║
+║                                                                      ║
+╚══════════════════════════════════════════════════════════════════════╝

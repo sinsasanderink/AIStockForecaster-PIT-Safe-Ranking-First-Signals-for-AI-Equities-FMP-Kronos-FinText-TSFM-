@@ -111,6 +111,11 @@ from .neutralization import (
     DEFAULT_IC_METHOD,
 )
 
+from .sentiment_features import (
+    SentimentFeatureGenerator,
+    SENTIMENT_FEATURE_NAMES,
+)
+
 __all__ = [
     # Labels (5.1)
     "LabelGenerator",
@@ -174,5 +179,8 @@ __all__ = [
     "format_neutralization_report",
     "get_neutralization_summary_df",
     "DEFAULT_IC_METHOD",
+    # Sentiment Features (10.3)
+    "SentimentFeatureGenerator",
+    "SENTIMENT_FEATURE_NAMES",
 ]
 

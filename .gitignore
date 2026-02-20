@@ -108,3 +108,10 @@ htmlcov/
 !outputs/.gitkeep
 
 data/
+
+# Kronos — external library with its own git repo (shiyu-coder/Kronos)
+Kronos/
+
+# Large dataset files (> 100MB GitHub limit)
+datasets/*.zip
+datasets/thesis_dataset_complete/

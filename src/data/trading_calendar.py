@@ -339,3 +339,56 @@ def get_trading_calendar() -> TradingCalendarImpl:
     """Get a configured trading calendar instance."""
     return TradingCalendarImpl()
 
+
+# ============================================================================
+# CHAPTER 8: KRONOS-SPECIFIC UTILITIES
+# ============================================================================
+
+def load_global_trading_calendar(db_path: str = "data/features.duckdb") -> 'pd.DatetimeIndex':
+    """
+    Load the complete trading calendar from DuckDB.
+    
+    **CRITICAL FOR CHAPTER 8 (KRONOS):**
+    The calendar is defined as the set of distinct `date` values present in the
+    `prices` table. This ensures future timestamps respect actual market trading
+    days and do not break near fold boundaries.
+    
+    **This must be GLOBAL (all dates), NOT fold-filtered.**
+    
+    Args:
+        db_path: Path to DuckDB database.
+    
+    Returns:
+        A sorted, unique, timezone-naive pd.DatetimeIndex of trading dates.
+    
+    Raises:
+        RuntimeError: If no dates are found in the `prices` table.
+    
+    Example:
+        >>> import pandas as pd
+        >>> calendar = load_global_trading_calendar()
+        >>> print(f"Calendar has {len(calendar)} trading days")
+        >>> print(f"Range: {calendar[0]} to {calendar[-1]}")
+    """
+    import duckdb
+    import pandas as pd
+    
+    con = duckdb.connect(db_path, read_only=True)
+    try:
+        dates_df = con.execute("SELECT DISTINCT date FROM prices ORDER BY date").df()
+    finally:
+        con.close()
+    
+    if dates_df.empty or "date" not in dates_df.columns:
+        raise RuntimeError("No trading dates found in DuckDB table `prices`.")
+    
+    dates = pd.to_datetime(dates_df["date"], errors="coerce").dropna()
+    calendar = pd.DatetimeIndex(dates).unique().sort_values()
+    
+    if len(calendar) == 0:
+        raise RuntimeError("Trading calendar resolved to empty after parsing dates.")
+    
+    logger.info(f"Loaded global trading calendar: {len(calendar)} days ({calendar[0]} to {calendar[-1]})")
+    
+    return calendar
+
