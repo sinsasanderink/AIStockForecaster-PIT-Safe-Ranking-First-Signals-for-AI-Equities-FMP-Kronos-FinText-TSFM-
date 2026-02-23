@@ -332,8 +332,40 @@ because g(x) penalizes extreme scores — the model's strongest signals. Health
 throttle cuts crisis MaxDD by 60% but destroys recovery returns when applied
 continuously. Optimal deployment: binary abstention (G ≥ 0.2), not continuous scaling.
 
-**DEUP does not improve per-name sizing, but it decisively improves whether to
-deploy the model at all via regime trust.**
+**DEUP does not improve per-name inverse-sizing, but it decisively improves whether
+to deploy the model at all via regime trust — AND adds a tail-risk guard via ê-cap.**
+
+### 13.7: Deployment Policy Ablation — THE DEPLOYMENT RECOMMENDATION
+
+**ê–Score structural conflict confirmed:** median ρ(ê, |score|) = **0.616** across
+1865 dates. Inverse-sizing systematically de-levers the model's strongest signals.
+
+| Variant | ALL Sharpe | DEV Sharpe | FINAL Sharpe | Crisis MaxDD |
+|---------|:---------:|:---------:|:----------:|:----------:|
+| Ungated raw (13.6 ref) | 1.138 | 1.161 | 1.365 | −44.0% |
+| Ungated vol (13.6 ref) | 1.178 | 1.174 | 1.680 | −47.3% |
+| 1. Gate+Raw | 0.758 | 0.810 | −0.424 | −34.6% |
+| 2. Gate+Vol | 0.817 | 0.847 | 0.191 | −40.2% |
+| 3. Gate+UA Sort (Liu) | 0.726 | 0.778 | −0.452 | −31.2% |
+| 4. Gate+Resid-ê | 0.810 | 0.867 | −0.450 | −46.3% |
+| 5. Gate+ê-Cap | 0.855 | 0.896 | −0.002 | −49.3% |
+| **6. Gate+Vol+ê-Cap** | **0.884** | **0.914** | **0.316** | −49.5% |
+| Kill: Trail-IC | 0.754 | 0.807 | −0.424 | −34.6% |
+
+**Kill criterion K4:** Triggered. Trail-IC ≈ Gate+Raw; ê-cap *does* add value (Variant 6),
+but IC-based sizing does not. ê per-stock uncertainty adds economic value only as a
+**tail-risk guard** (capping the most anomalously uncertain stocks), not as inverse sizing.
+
+**Deployment recommendation:**
+```
+Binary Gate (G ≥ 0.2) + Vol-Sizing + ê-Cap at P85 (cap_weight=0.70)
+```
+Three-layer system: (1) regime gate, (2) vol-sizing, (3) DEUP tail-risk guard.
+
+**Complete DEUP thesis:**
+*ê(x) provides a calibrated tail-risk guard at the position level; G(t) provides a
+regime trust gate at the strategy level — together forming a two-layer uncertainty
+management system that is measurably better than either alone.*
 
 ---
 

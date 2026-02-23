@@ -86,6 +86,9 @@ DIAGNOSTICS_CONFORMAL_PATH = OUTPUT_DIR / "conformal_diagnostics.json"
 PORTFOLIO_METRICS_PATH = OUTPUT_DIR / "chapter13_6_portfolio_metrics.json"
 REGIME_EVAL_PATH = OUTPUT_DIR / "chapter13_6_regime_eval.json"
 DAILY_TS_PATH = OUTPUT_DIR / "chapter13_6_daily_timeseries.parquet"
+POLICY_RESULTS_PATH = OUTPUT_DIR / "chapter13_7_policy_results.json"
+POLICY_CALIBRATION_PATH = OUTPUT_DIR / "chapter13_7_calibration.json"
+EHAT_SCORE_DIAG_PATH = OUTPUT_DIR / "chapter13_7_ehat_score_diagnostic.json"
 A_PREDICTIONS_PATH = OUTPUT_DIR / "a_predictions.parquet"
 EHAT_PATH = OUTPUT_DIR / "ehat_predictions.parquet"
 EHAT_MAE_PATH = OUTPUT_DIR / "ehat_predictions_mae.parquet"
@@ -736,6 +739,101 @@ def step_7_portfolio():
     return all_portfolio_metrics, all_regime_eval
 
 
+# ── Step 8: Deployment policy ablation (Chapter 13.7) ────────────────────
+
+
+def step_8_policy() -> dict:
+    """
+    Chapter 13.7 — Deployment Policy & Sizing Ablation.
+
+    Runs 6 binary-gate policy variants + kill-criterion trailing-IC variant
+    on the 20d primary horizon. Produces:
+        chapter13_7_policy_results.json   — ALL/DEV/FINAL/CRISIS metrics
+        chapter13_7_calibration.json      — frozen DEV-calibrated params
+        chapter13_7_ehat_score_diagnostic.json — structural conflict evidence
+    """
+    from src.uncertainty.deployment_policy import (
+        run_policy_pipeline,
+        print_results_table,
+    )
+
+    logger.info("\n=== Step 8: Chapter 13.7 Deployment Policy Ablation ===")
+
+    # ── Load all data ──────────────────────────────────────────────────────
+    enriched_path = OUTPUT_DIR / "enriched_residuals_tabular_lgb.parquet"
+    ehat_path = OUTPUT_DIR / "ehat_predictions.parquet"
+    health_path = OUTPUT_DIR / "expert_health_lgb_20d.parquet"
+
+    for p in [enriched_path, ehat_path, health_path]:
+        if not p.exists():
+            logger.error(f"Required file missing: {p}")
+            raise FileNotFoundError(f"Missing: {p}")
+
+    enriched_df = pd.read_parquet(enriched_path)
+    ehat_df = pd.read_parquet(ehat_path)
+    health_df = pd.read_parquet(health_path)
+
+    logger.info(
+        f"  Loaded enriched: {len(enriched_df):,} rows, "
+        f"ehat: {len(ehat_df):,} rows, "
+        f"health: {len(health_df):,} rows"
+    )
+
+    # ── Run pipeline (20d primary horizon) ────────────────────────────────
+    policy_results, cal_params, timeseries = run_policy_pipeline(
+        enriched_df, ehat_df, health_df, horizon=20
+    )
+
+    # ── Save diagnostic ───────────────────────────────────────────────────
+    diag = policy_results.pop("_diagnostic", {})
+    policy_results.pop("_horizon", None)
+
+    with open(EHAT_SCORE_DIAG_PATH, "w") as f:
+        json.dump(diag, f, indent=2, default=str)
+    logger.info(f"  ê–score diagnostic saved: {EHAT_SCORE_DIAG_PATH}")
+
+    # ── Save calibration ──────────────────────────────────────────────────
+    with open(POLICY_CALIBRATION_PATH, "w") as f:
+        json.dump(cal_params, f, indent=2, default=str)
+    logger.info(f"  Calibration saved: {POLICY_CALIBRATION_PATH}")
+
+    # ── Save policy results ───────────────────────────────────────────────
+    with open(POLICY_RESULTS_PATH, "w") as f:
+        json.dump(policy_results, f, indent=2, default=str)
+    logger.info(f"  Policy results saved: {POLICY_RESULTS_PATH}")
+
+    # ── Load 13.6 baselines for comparison table ───────────────────────────
+    # 13.6 json layout: {"20d": {"ALL": {"baseline_raw": {...}}, "DEV": ..., "FINAL": ..., "CRISIS_2024": ...}}
+    # Need to reshape to:  {"baseline_raw": {"ALL": {...}, "DEV": {...}, "FINAL": {...}, "CRISIS_2024": {...}}}
+    baseline_13_6 = None
+    if PORTFOLIO_METRICS_PATH.exists():
+        with open(PORTFOLIO_METRICS_PATH) as f:
+            raw = json.load(f)
+        hz = raw.get("20d", {})
+        # hz maps period_name → {variant_name → metrics_dict}
+        baseline_13_6 = {}
+        for period_name, variants_dict in hz.items():
+            if not isinstance(variants_dict, dict):
+                continue
+            for vname, metrics in variants_dict.items():
+                if not isinstance(metrics, dict):
+                    continue
+                if vname not in baseline_13_6:
+                    baseline_13_6[vname] = {}
+                baseline_13_6[vname][period_name] = metrics
+
+    # ── Print comparison table ────────────────────────────────────────────
+    print_results_table(policy_results, baseline_13_6=baseline_13_6)
+
+    # ── Log headline ──────────────────────────────────────────────────────
+    for variant in ["gate_vol", "gate_ua_sort", "gate_vol_ehat_cap"]:
+        if variant in policy_results:
+            fin_sh = policy_results[variant].get("FINAL", {}).get("sharpe", "?")
+            logger.info(f"  {variant} FINAL Sharpe = {fin_sh}")
+
+    return policy_results
+
+
 # ── Main ─────────────────────────────────────────────────────────────────
 
 
@@ -743,7 +841,7 @@ def main():
     parser = argparse.ArgumentParser(description="Chapter 13 DEUP")
     parser.add_argument(
         "--step", type=int, default=None,
-        help="Run specific step (0–7). Default: run all.",
+        help="Run specific step (0–8). Default: run all.",
     )
     args = parser.parse_args()
 
@@ -804,6 +902,15 @@ def main():
             json.dump(re, f, indent=2, default=str)
         logger.info(f"\nPortfolio metrics saved to {PORTFOLIO_METRICS_PATH}")
         logger.info(f"Regime eval saved to {REGIME_EVAL_PATH}")
+
+    if args.step is None or args.step == 8:
+        step_8_policy()
+        logger.info(
+            f"\n13.7 results saved to:\n"
+            f"  {POLICY_RESULTS_PATH}\n"
+            f"  {POLICY_CALIBRATION_PATH}\n"
+            f"  {EHAT_SCORE_DIAG_PATH}"
+        )
 
 
 if __name__ == "__main__":

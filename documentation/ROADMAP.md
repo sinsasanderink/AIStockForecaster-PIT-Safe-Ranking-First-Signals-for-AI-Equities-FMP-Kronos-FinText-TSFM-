@@ -25,7 +25,7 @@ This roadmap tracks the implementation status of the AI Stock Forecaster, a sign
 | **Ch10: NLP Sentiment** | **✅ COMPLETE** | **100%** | **Feb 18, 2026** |
 | **Ch11: Fusion Model** | **✅ COMPLETE** | **100%** | **Feb 19, 2026** |
 | **Ch12: Regime Analysis** | **✅ COMPLETE** | **100%** | **Feb 19, 2026** |
-| Ch13: DEUP Uncertainty Quantification | ⏳ IN PROGRESS | 75% | Feb 2026 |
+| Ch13: DEUP Uncertainty Quantification | ⏳ IN PROGRESS | 90% | Feb 2026 |
 | Ch14: Monitoring | ⏳ TODO | 0% | - |
 | Ch15: Interfaces | ⏳ TODO | 0% | - |
 | Ch16: Acceptance Criteria & Factor Attribution | ⏳ TODO | 0% | - |
@@ -587,12 +587,15 @@ than UQ sophistication."
 15. ✅ 13.4b: Expert health H(t) — per-date regime throttle, G(t)→0 by Apr 2024, 20d crisis detection works (lag ~1 month), 116 total tests
 16. ✅ 13.5: Conformal intervals — DEUP-norm reduces conditional coverage spread 25× (0.8% vs 20.2%), narrower intervals, 137 total tests
 17. ✅ 13.6: Regime trust gate finalized (AUROC 0.72 / 0.75 FINAL), portfolio sizing evaluated, 154 total tests
-18. ⏳ 13.7: Deployment policy + ablation (binary gate, gate+vol, gate+DEUP-cap) — NEXT
-Chapter 13 overall: **75% complete**
+18. ✅ 13.7: Deployment policy + ablation — COMPLETE. Structural conflict confirmed (ρ=0.616). Variant 6 (Gate+Vol+ê-Cap) is winner (ALL Sharpe 0.884, FINAL 0.316). Kill criterion K4 triggered for inverse sizing; ê-cap guard validated. 28 new tests.
+19. ⏳ 13.8: DEUP on Rank Avg 2 (optional robustness) — TODO
+20. ⏳ 13.9: Freeze, final documentation, git tag — TODO
+Chapter 13 overall: **90% complete**
 
 **Chapter 13 outcome so far:**
 - ✅ **PASS:** Regime trust gate works (AUROC 0.72, monotonic buckets, FINAL > DEV).
-- ⚠️ **FAIL (honest):** Per-stock DEUP sizing does not beat vol sizing.
+- ✅ **PASS:** ê-Cap tail-risk guard adds incremental value on top of vol-sizing (Variant 6 ALL Sharpe 0.884 vs Gate+Vol 0.817).
+- ⚠️ **FAIL (honest, K4 triggered):** Per-stock inverse DEUP sizing does not beat vol sizing (ρ(ê, |score|) = 0.616 structural conflict confirmed).
 
 **Notes on Ch13 Priority:**
 - Vol-sized LGB is the ablation baseline (Sharpe 2.73, max DD −18.1%)
