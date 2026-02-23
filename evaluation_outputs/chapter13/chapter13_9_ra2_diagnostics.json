@@ -1,0 +1,343 @@
+{
+  "chapter": "13.9",
+  "title": "DEUP on Rank Avg 2 \u2014 Robustness Check",
+  "diagnostics_by_horizon": {
+    "20": {
+      "ra2_rho": {
+        "ALL": 0.19408568792925676,
+        "DEV": 0.19498578195161084,
+        "FINAL": 0.18108218864787018
+      },
+      "lgb_rho": {
+        "ALL": 0.14436827845916486,
+        "DEV": 0.14171499957758282,
+        "FINAL": 0.19192542294487316
+      },
+      "ra2_monotone_quintiles": 4,
+      "ra2_quintile_rank_loss": {
+        "0": 0.2491429575442823,
+        "1": 0.2748383937078971,
+        "2": 0.30629811473207336,
+        "3": 0.36599279105402616,
+        "4": 0.41235714992549816
+      },
+      "ra2_n_rows": 233011,
+      "lgb_n_rows": 161863
+    },
+    "60": {
+      "ra2_rho": {
+        "ALL": 0.15289335020858774,
+        "DEV": 0.1496170890087428,
+        "FINAL": 0.20548220399759523
+      },
+      "lgb_rho": {
+        "ALL": 0.10550987166286042,
+        "DEV": 0.10340166270841604,
+        "FINAL": 0.13963760460271385
+      },
+      "ra2_monotone_quintiles": 1,
+      "ra2_quintile_rank_loss": {
+        "0": 0.29403665748857233,
+        "1": 0.39482707518375243
+      },
+      "ra2_n_rows": 233011,
+      "lgb_n_rows": 171859
+    },
+    "90": {
+      "ra2_rho": {
+        "ALL": 0.18418096147035143,
+        "DEV": 0.18110366471290906,
+        "FINAL": 0.22968957332683637
+      },
+      "lgb_rho": {
+        "ALL": 0.14631742293208827,
+        "DEV": 0.13844605378601982,
+        "FINAL": 0.24795052625400021
+      },
+      "ra2_monotone_quintiles": 4,
+      "ra2_quintile_rank_loss": {
+        "0": 0.23523962145719654,
+        "1": 0.27404064571200193,
+        "2": 0.30451010669481915,
+        "3": 0.34716689442819276,
+        "4": 0.39393617992668284
+      },
+      "ra2_n_rows": 233011,
+      "lgb_n_rows": 161863
+    }
+  },
+  "portfolio_comparison": {
+    "lgb_raw": {
+      "ALL": {
+        "label": "lgb_raw",
+        "n": 114,
+        "sharpe": 1.4970476323113022,
+        "ann_ret": 0.36450427450665207,
+        "ann_vol": 0.243482082092399,
+        "max_dd": -0.32103017350782476,
+        "crisis_mdd": -0.014260503317365331,
+        "abstain_rate": 0.0
+      },
+      "DEV": {
+        "label": "lgb_raw",
+        "n": 100,
+        "sharpe": 1.3808495551717976,
+        "ann_ret": 0.3363109484676534,
+        "ann_vol": 0.24355364942403984,
+        "max_dd": -0.32103017350782476,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.0
+      },
+      "FINAL": {
+        "label": "lgb_raw",
+        "n": 14,
+        "sharpe": 2.32128175647093,
+        "ann_ret": 0.565885174785214,
+        "ann_vol": 0.24378133899847448,
+        "max_dd": -0.03449524341415374,
+        "crisis_mdd": -0.014260503317365331,
+        "abstain_rate": 0.0
+      }
+    },
+    "lgb_vol": {
+      "ALL": {
+        "label": "lgb_vol",
+        "n": 114,
+        "sharpe": 1.313065577291373,
+        "ann_ret": 0.31548845975351025,
+        "ann_vol": 0.24026862421015427,
+        "max_dd": -0.3748748888483956,
+        "crisis_mdd": -0.06897825164910329,
+        "abstain_rate": 0.0
+      },
+      "DEV": {
+        "label": "lgb_vol",
+        "n": 100,
+        "sharpe": 1.2434680090794605,
+        "ann_ret": 0.2967176132831736,
+        "ann_vol": 0.23862102693163262,
+        "max_dd": -0.3748748888483956,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.0
+      },
+      "FINAL": {
+        "label": "lgb_vol",
+        "n": 14,
+        "sharpe": 1.745453313270523,
+        "ann_ret": 0.44956593454162985,
+        "ann_vol": 0.25756399848888584,
+        "max_dd": -0.06897825164910328,
+        "crisis_mdd": -0.06897825164910329,
+        "abstain_rate": 0.0
+      }
+    },
+    "lgb_ehat": {
+      "ALL": {
+        "label": "lgb_ehat",
+        "n": 114,
+        "sharpe": 1.0059909659596702,
+        "ann_ret": 0.2214124822344784,
+        "ann_vol": 0.2200939071289381,
+        "max_dd": -0.30612575363908745,
+        "crisis_mdd": -0.027498691880946443,
+        "abstain_rate": 0.0
+      },
+      "DEV": {
+        "label": "lgb_ehat",
+        "n": 100,
+        "sharpe": 1.1376107266695317,
+        "ann_ret": 0.2621492288466698,
+        "ann_vol": 0.23043842915769408,
+        "max_dd": -0.30612575363908745,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.0
+      },
+      "FINAL": {
+        "label": "lgb_ehat",
+        "n": 14,
+        "sharpe": -0.7770904625781254,
+        "ann_ret": -0.06956427928117412,
+        "ann_vol": 0.08951889468619031,
+        "max_dd": -0.047461685430256764,
+        "crisis_mdd": -0.027498691880946443,
+        "abstain_rate": 0.0
+      }
+    },
+    "lgb_gate_vol": {
+      "ALL": {
+        "label": "lgb_gate_vol",
+        "n": 114,
+        "sharpe": 0.9067800294903847,
+        "ann_ret": 0.167474498989989,
+        "ann_vol": 0.1846914285089743,
+        "max_dd": -0.3797605312812187,
+        "crisis_mdd": 0.0,
+        "abstain_rate": 0.45614035087719296
+      },
+      "DEV": {
+        "label": "lgb_gate_vol",
+        "n": 100,
+        "sharpe": 0.8847983689157979,
+        "ann_ret": 0.1595330067684118,
+        "ann_vol": 0.18030436353979515,
+        "max_dd": -0.3797605312812187,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.43000000000000005
+      },
+      "FINAL": {
+        "label": "lgb_gate_vol",
+        "n": 14,
+        "sharpe": 1.0169908319931735,
+        "ann_ret": 0.22419944342982578,
+        "ann_vol": 0.22045375078792326,
+        "max_dd": -0.043956099293527895,
+        "crisis_mdd": 0.0,
+        "abstain_rate": 0.6428571428571428
+      }
+    },
+    "ra2_raw": {
+      "ALL": {
+        "label": "ra2_raw",
+        "n": 114,
+        "sharpe": 0.6220080697507127,
+        "ann_ret": 0.14959164546729897,
+        "ann_vol": 0.2404979175386777,
+        "max_dd": -0.3082960268808003,
+        "crisis_mdd": -0.10072382914344055,
+        "abstain_rate": 0.0
+      },
+      "DEV": {
+        "label": "ra2_raw",
+        "n": 100,
+        "sharpe": 0.736445894382837,
+        "ann_ret": 0.18381695558429356,
+        "ann_vol": 0.24960008194266256,
+        "max_dd": -0.3082960268808003,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.0
+      },
+      "FINAL": {
+        "label": "ra2_raw",
+        "n": 14,
+        "sharpe": -0.636726097825721,
+        "ann_ret": -0.09487485536837634,
+        "ann_vol": 0.14900418828810855,
+        "max_dd": -0.10609731690434168,
+        "crisis_mdd": -0.10072382914344055,
+        "abstain_rate": 0.0
+      }
+    },
+    "ra2_vol": {
+      "ALL": {
+        "label": "ra2_vol",
+        "n": 114,
+        "sharpe": 0.22578042301687293,
+        "ann_ret": 0.051462460507949594,
+        "ann_vol": 0.22793145579368373,
+        "max_dd": -0.498010676675632,
+        "crisis_mdd": -0.015474005257486803,
+        "abstain_rate": 0.0
+      },
+      "DEV": {
+        "label": "ra2_vol",
+        "n": 100,
+        "sharpe": 0.22291581877005845,
+        "ann_ret": 0.051989140082962945,
+        "ann_vol": 0.23322319775157205,
+        "max_dd": -0.42683332120777995,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.0
+      },
+      "FINAL": {
+        "label": "ra2_vol",
+        "n": 14,
+        "sharpe": 0.2467728274302585,
+        "ann_ret": 0.04770046354356851,
+        "ann_vol": 0.19329706613281536,
+        "max_dd": -0.11093728752898918,
+        "crisis_mdd": -0.015474005257486803,
+        "abstain_rate": 0.0
+      }
+    },
+    "ra2_ehat": {
+      "ALL": {
+        "label": "ra2_ehat",
+        "n": 114,
+        "sharpe": 0.43012673095591925,
+        "ann_ret": 0.09684404706979163,
+        "ann_vol": 0.22515235650331278,
+        "max_dd": -0.32790066623684266,
+        "crisis_mdd": -0.0009000000000000635,
+        "abstain_rate": 0.0
+      },
+      "DEV": {
+        "label": "ra2_ehat",
+        "n": 100,
+        "sharpe": 0.4818933255709251,
+        "ann_ret": 0.1150246854741236,
+        "ann_vol": 0.23869325298881783,
+        "max_dd": -0.32790066623684266,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.0
+      },
+      "FINAL": {
+        "label": "ra2_ehat",
+        "n": 14,
+        "sharpe": -0.46524931750822934,
+        "ann_ret": -0.03301765581829383,
+        "ann_vol": 0.07096766094172681,
+        "max_dd": -0.05683295145507079,
+        "crisis_mdd": -0.0009000000000000635,
+        "abstain_rate": 0.0
+      }
+    },
+    "ra2_gate_vol": {
+      "ALL": {
+        "label": "ra2_gate_vol",
+        "n": 114,
+        "sharpe": 0.2220415516655277,
+        "ann_ret": 0.03593709665836742,
+        "ann_vol": 0.1618485206431149,
+        "max_dd": -0.41120187718238205,
+        "crisis_mdd": 0.0,
+        "abstain_rate": 0.45614035087719296
+      },
+      "DEV": {
+        "label": "ra2_gate_vol",
+        "n": 100,
+        "sharpe": 0.14948577959182,
+        "ann_ret": 0.024992346973583476,
+        "ann_vol": 0.16718879241775766,
+        "max_dd": -0.41120187718238205,
+        "crisis_mdd": NaN,
+        "abstain_rate": 0.43000000000000005
+      },
+      "FINAL": {
+        "label": "ra2_gate_vol",
+        "n": 14,
+        "sharpe": 0.9575107630504217,
+        "ann_ret": 0.11411388012110993,
+        "ann_vol": 0.11917764742149511,
+        "max_dd": -0.024742285415977616,
+        "crisis_mdd": 0.0,
+        "abstain_rate": 0.6428571428571428
+      }
+    }
+  },
+  "decision_gate": {
+    "adopt_ra2": false,
+    "criteria_met": 0,
+    "criterion_1_primary": false,
+    "criterion_2_rho": false,
+    "criterion_3_dev": false,
+    "ra2_best_variant": "ra2_gate_vol",
+    "ra2_final_sharpe": 0.9575107630504217,
+    "lgb_best_variant": "lgb_raw",
+    "lgb_final_sharpe": 2.32128175647093,
+    "ra2_rho_final": 0.18108218864787018,
+    "lgb_rho_final": 0.19192542294487316,
+    "ra2_dev_sharpe": 0.22291581877005845,
+    "lgb_dev_sharpe": 1.2434680090794605,
+    "recommendation": "RETAIN tabular_lgb as primary. RA2 does not beat LGB on FINAL holdout Sharpe (0.958 vs 2.321). DEUP's economic value is already captured by the 13.7 deployment recommendation (Binary Gate + Vol-Sizing + \u00ea-Cap). Chapter 13 goal is met with LGB as primary."
+  }
+}

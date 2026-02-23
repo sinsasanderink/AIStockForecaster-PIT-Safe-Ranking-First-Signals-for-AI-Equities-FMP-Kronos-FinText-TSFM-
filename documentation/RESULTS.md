@@ -401,6 +401,33 @@ while 60d/90d remained positive (+0.070/+0.142). Horizon-specific gating adds pr
 
 ---
 
+### 13.9: DEUP on Rank Avg 2 — Robustness Check
+
+**Question:** Does a more holdout-robust base model (RA2, 20d FINAL IC=0.033 vs LGB 0.010) produce better DEUP signals, and should it replace LGB as primary?
+
+**ê Signal Quality (key result):**
+
+| Horizon | RA2 ρ ALL | RA2 ρ FINAL | LGB ρ ALL | LGB ρ FINAL |
+|---------|:---------:|:-----------:|:---------:|:-----------:|
+| 20d | **0.194** | 0.181 | 0.144 | 0.192 |
+| 60d | **0.153** | **0.206** | 0.106 | 0.140 |
+| 90d | **0.184** | 0.230 | 0.146 | 0.248 |
+
+RA2 ê quality is **35% higher at 20d ALL** and **44% higher at 60d ALL** — a more robust base model produces a more predictive epistemic uncertainty signal.
+
+**Shadow Portfolio (20d):**
+
+| Variant | ALL Sharpe | DEV Sharpe | FINAL Sharpe | Crisis MaxDD |
+|---------|:----------:|:----------:|:------------:|:------------:|
+| lgb_raw | +1.497 | +1.381 | +2.321 | −1.4% |
+| lgb_gate_vol | +0.907 | +0.885 | +1.017 | 0.0% |
+| ra2_raw | +0.622 | +0.736 | −0.637 | −10.1% |
+| ra2_gate_vol | +0.222 | +0.149 | +0.958 | 0.0% |
+
+**Decision: RETAIN LGB as primary** (0/3 portfolio criteria met). RA2's lower DEV signal strength (IC 0.059 vs LGB 0.091) translates to lower raw Sharpe. Crucially, once the G(t) gate is applied, RA2 and LGB converge on FINAL Sharpe (0.958 vs 1.017) — **the regime gate is the dominant value driver for both models.** The ê-sizing structural conflict is confirmed model-agnostic.
+
+---
+
 ## 9. Key Findings & Lessons
 
 ### What Works

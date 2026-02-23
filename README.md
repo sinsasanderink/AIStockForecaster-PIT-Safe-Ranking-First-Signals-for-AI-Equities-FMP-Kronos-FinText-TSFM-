@@ -134,7 +134,7 @@ However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates
 | Ch 10 | NLP sentiment (FinBERT) | ✅ Complete |
 | Ch 11 | Fusion models | ✅ Complete |
 | Ch 12 | Regime analysis + stress tests | ✅ Complete |
-| **Ch 13** | **DEUP uncertainty quantification** | **⏳ 95%** |
+| **Ch 13** | **DEUP uncertainty quantification** | **⏳ 97%** |
 | Ch 14–17 | Monitoring, interfaces, acceptance, extensions | ⏳ TODO |
 
 ### Chapter 13 (DEUP) Progress
@@ -151,7 +151,8 @@ However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates
 | 13.6 | Shadow portfolio + regime evaluation | ✅ |
 | 13.7 | Deployment policy + ablation | ✅ |
 | 13.8 | Multi-crisis G(t) diagnostic (7/8 correct; VIX 5/8) | ✅ |
-| 13.9 | Freeze & documentation | ⏳ Next |
+| 13.9 | DEUP on Rank Avg 2 (RA2 ê ρ=0.194 > LGB 0.144; retain LGB) | ✅ |
+| 13.10 | Freeze & documentation | ⏳ Next |
 
 ---
 
