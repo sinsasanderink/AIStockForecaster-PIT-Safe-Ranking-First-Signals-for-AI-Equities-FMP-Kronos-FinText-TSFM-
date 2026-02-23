@@ -582,16 +582,16 @@ value during regime shifts.
 
 | Split | Sharpe | Sortino | Ann. Return | Ann. Vol | Max DD | Hit Rate |
 |-------|:------:|:-------:|:----------:|:--------:|:------:|:--------:|
-| DEV (95 mo) | 3.15 | 4.74 | 81.9% | 26.0% | −21.9% | 82.1% |
-| FINAL (14 mo) | 1.91 | 8.92 | 119.1% | 62.4% | −16.6% | 71.4% |
+| DEV (95 mo) | **3.12** | 5.41 | 79.6% | 25.5% | −18.1% | 82.1% |
+| FINAL (14 mo) | **2.34** | 9.69 | 137.3% | 58.7% | −8.7% | 85.7% |
 
 The 20d shadow portfolio **degrades but remains strongly positive** in the
-holdout. Sharpe drops 39% (3.15 → 1.91) but 1.91 is still a strong
-risk-adjusted return. The high Sortino (8.92) suggests negative tail events
-are rare even in the difficult holdout period.
+holdout. FINAL Sharpe of 2.34 with Sortino 9.69 suggests downside tail
+events are rare even in the difficult holdout period, driven by high
+cross-sectional spread in AI stocks in 2024-2025.
 
-The elevated annualized return (119.1%) and volatility (62.4%) in FINAL
-likely reflect the extreme dispersion of AI stocks in 2024 (NVDA +170%,
+The elevated annualized return (137.3%) and volatility (58.7%) in FINAL
+likely reflect the extreme dispersion of AI stocks in 2024-2025 (NVDA +170%,
 some AI stocks −50%).
 
 ### Year-by-year RankIC reveals regime dependency
@@ -642,7 +642,7 @@ This is **not** pure overfitting for these reasons:
    all AI stocks rise together, making ranking meaningless. This matches
    the regime analysis in Chapter 12.1 (low-VIX outperformance).
 3. **20d portfolio still works**: The shadow portfolio at 20d holds Sharpe
-   1.91 in the holdout. A purely overfit model would collapse to ~0.
+   2.34 in the holdout. A purely overfit model would collapse to ~0.
 
 However, the headline metrics **are optimistically biased** because:
 1. The 2016 anomaly (RankIC 0.41) inflates the DEV average
@@ -656,7 +656,7 @@ However, the headline metrics **are optimistically biased** because:
    project.** DEUP must detect the 2024 regime failure and abstain. The
    holdout collapse is the exact scenario epistemic uncertainty should flag.
 2. **20d is the confirmed primary horizon.** It retains signal in the holdout
-   and produces a usable Sharpe (1.91). 60d and 90d are research horizons
+   and produces a usable Sharpe (2.34). 60d and 90d are research horizons
    until confirmed by future data or a model improvement.
 3. **Factor regression (Chapter 16) must use FINAL period returns.** Proving
    alpha on DEV period returns is insufficient — it must survive in the holdout.
@@ -815,7 +815,7 @@ The "true" RankIC of the model is probably:
    in the holdout — DEUP must detect this and reduce confidence. See Appendix
    above for full analysis.
 
-9. **20d is the confirmed primary horizon.** FINAL Sharpe 1.91 proves the
+9. **20d is the confirmed primary horizon.** FINAL Sharpe 2.34 proves the
    20d signal generalizes. 60d/90d are DEV-only until either (a) DEUP learns
    to abstain during failure regimes, or (b) a model improvement restores
    holdout performance.

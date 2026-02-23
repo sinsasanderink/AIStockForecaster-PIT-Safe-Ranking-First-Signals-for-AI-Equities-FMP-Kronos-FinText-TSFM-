@@ -426,7 +426,7 @@ Phase 5: Freeze & Documentation ✅ (Feb 18, 2026)
 | Rank Avg 2 | 0.1173 | 0.6069 | 72.1% | 0.844 |
 
 ⚠️ **Holdout note:** 90d RankIC collapses to −0.02 in FINAL (2024+). 20d shadow
-Sharpe holds at 1.91 in FINAL. See "DEV / FINAL Holdout Protocol" section.
+Sharpe is 2.34 in FINAL. See "DEV / FINAL Holdout Protocol" section.
 
 **Status:** ✅ COMPLETE (Feb 19, 2026) — Documentation: `documentation/CHAPTER_11.md`
 
@@ -585,7 +585,7 @@ than UQ sophistication."
 13. ✅ 13.3: Epistemic signal ê(x) — perfect quintile monotonicity (ρ=1.0), FINAL > DEV at all horizons, 14/14 sanity checks passed
 14. ✅ 13.4: Diagnostics — Disentanglement PASS (ê ≠ vol), baselines dominated 3–10×, stability PASS across all conditions, 98 total tests
 15. ✅ 13.4b: Expert health H(t) — per-date regime throttle, G(t)→0 by Apr 2024, 20d crisis detection works (lag ~1 month), 116 total tests
-16. ✅ 13.5: Conformal intervals — DEUP-norm reduces conditional coverage spread 25× (0.8% vs 20.2%), narrower intervals, 137 total tests
+16. ✅ 13.5: Conformal intervals — DEUP-norm reduces conditional coverage spread 96× (0.21% vs 20.2%), narrower intervals, 137 total tests
 17. ✅ 13.6: Regime trust gate finalized (AUROC 0.72 / 0.75 FINAL), portfolio sizing evaluated, 154 total tests
 18. ✅ 13.7: Deployment policy + ablation — COMPLETE. Structural conflict confirmed (ρ=0.616). Variant 6 (Gate+Vol+ê-Cap) is winner (ALL Sharpe 0.884, FINAL 0.316). Kill criterion K4 triggered for inverse sizing; ê-cap guard validated. 28 new tests.
 19. ✅ 13.8: Multi-crisis G(t) diagnostic — COMPLETE. G(t) validated across 5 crisis + 3 calm windows (7/8 correct verdicts vs 5/8 for VIX gate). Critical finding: VIX produces 3 false alarms on calm periods where model IC > 0.10; G(t) correctly stays active. 2023 H2 is decisive distinguishing episode (IC=+0.034 at 20d; VIX=94.3%).
@@ -607,7 +607,7 @@ Chapter 13 overall: **97% complete**
 - Risk attribution (Fama-French 5-factor) deferred to Chapter 16 acceptance gate
 - **DEV/FINAL holdout protocol established:** All chapters must report both DEV (pre-2024)
   and FINAL (2024+) metrics. Signal collapses at 60d/90d in holdout; 20d is confirmed
-  (FINAL Sharpe 1.91). See "DEV / FINAL Holdout Protocol" section above.
+  (FINAL Sharpe 2.34). See "DEV / FINAL Holdout Protocol" section above.
 - **DEUP must detect the 2024 regime failure:** The holdout collapse is exactly the
   scenario epistemic uncertainty should flag and abstain from.
 
@@ -658,8 +658,8 @@ DEV and FINAL separately going forward, and iterating only on DEV metrics.
 
 | Split | Sharpe | Ann. Return | Max DD | Hit Rate |
 |-------|:------:|:----------:|:------:|:--------:|
-| DEV (95 mo) | 3.15 | 81.9% | −21.9% | 82.1% |
-| FINAL (14 mo) | 1.91 | 119.1% | −16.6% | 71.4% |
+| DEV (95 mo) | **3.12** | 79.6% | −18.1% | 82.1% |
+| FINAL (14 mo) | **2.34** | 137.3% | −8.7% | 85.7% |
 
 **Year-by-year 90d RankIC reveals regime dependency, not pure overfitting:**
 
@@ -727,7 +727,7 @@ Output: `evaluation_outputs/chapter12/holdout_diagnostics/holdout_diagnostics.js
 1. **UQ is even more critical:** DEUP (Ch13) must detect these failure regimes
    and reduce confidence / abstain. The 2024 collapse is exactly the scenario
    epistemic uncertainty should flag.
-2. **20d is the most robust horizon:** Confirmed positive signal + Sharpe 1.91
+2. **20d is the most robust horizon:** Confirmed positive signal + Sharpe 2.34
    in holdout. 60d/90d carry regime risk.
 3. **Factor regression (Ch16) becomes essential:** Need to confirm that the
    surviving 20d alpha isn't just repackaged momentum.

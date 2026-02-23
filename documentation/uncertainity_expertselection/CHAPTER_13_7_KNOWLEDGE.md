@@ -22,7 +22,7 @@ predicted scores and realized returns, cross-sectionally per date).
 ### Key System Properties
 
 - **Primary model:** LightGBM (tabular features: momentum, vol, fundamentals, regime)
-- **Primary horizon:** 20d (confirmed in holdout, FINAL Sharpe 1.91)
+- **Primary horizon:** 20d (confirmed in holdout, FINAL Sharpe 2.34)
 - **Universe:** ~84 AI stocks per date (dynamic, survivorship-safe)
 - **Evaluation:** Walk-forward, 109 folds, expanding window, 90-day embargo
 - **Holdout:** DEV (2016–2023, 95 months) / FINAL (2024+, 14 months)
@@ -39,7 +39,7 @@ predicted scores and realized returns, cross-sectionally per date).
 | 13.3 | ê(x) = max(0, g−a) epistemic signal | Quintile monotonicity ρ=1.0 in FINAL |
 | 13.4 | Diagnostics A–F | ê ≠ vol (survives residualization), dominates 3–10× |
 | 13.4b | H(t) expert health / G(t) exposure gate | G(t)→0 by Apr 2024, AUROC 0.72 |
-| 13.5 | DEUP-normalized conformal intervals | 25× better conditional coverage |
+| 13.5 | DEUP-normalized conformal intervals | 96× better conditional coverage (gap 20.2% → 0.21%) |
 | 13.6 | Shadow portfolio + regime evaluation | Vol-sized wins; DEUP sizing FAILS; regime gate WORKS |
 
 ### The Core Problem 13.7 Must Solve

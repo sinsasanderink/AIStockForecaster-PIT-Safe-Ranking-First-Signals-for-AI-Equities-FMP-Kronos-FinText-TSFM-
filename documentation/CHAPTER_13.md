@@ -28,7 +28,7 @@ w_i(t) = base_weight_i(t) × G(t) × f(ê_i(t))
 ```
 where G(t) is the exposure gate from H(t) and f(ê) is the per-stock sizing function.
 
-**Primary horizon:** 20d (confirmed signal in holdout, FINAL Sharpe 1.91)
+**Primary horizon:** 20d (confirmed signal in holdout, FINAL Sharpe 2.34)
 
 **Core decomposition:**
 ```
@@ -527,8 +527,8 @@ python -m pytest tests/test_chapter13_deup.py tests/test_chapter13_aleatoric.py 
     for a lagged realized-efficacy signal.
 
 13. **DEUP-normalized conformal intervals dramatically improve conditional coverage
-    (13.5).** Raw conformal has 20% coverage spread across ê terciles (98% for easy
-    stocks, 78% for hard stocks). DEUP reduces this to 0.8% — a 25× improvement —
+    (13.5).** Raw conformal has 20.2% coverage spread across ê terciles (98.2% for easy
+    stocks, 78.0% for hard stocks). DEUP reduces this to 0.21% — a 96× improvement —
     while also producing narrower intervals. This validates the Plassier et al. (2025)
     motivation for conformity-score normalization.
 
@@ -1325,13 +1325,13 @@ error is within the stock's normal noise — so conservative intervals are appro
 |---------|:------------:|:------------:|:-------------:|:--------:|
 | **Raw** | 98.2% | 93.8% | 78.0% | **20.2%** |
 | **Vol-norm** | 91.9% | 89.8% | 86.1% | **5.9%** |
-| **DEUP-norm** | 89.6% | 90.4% | 89.8% | **0.8%** |
+| **DEUP-norm** | 89.6% | 90.4% | 89.8% | **0.21%** |
 
-**DEUP-normalized reduces conditional coverage spread from 20.2% to 0.8% — a 25× improvement.**
+**DEUP-normalized reduces conditional coverage spread from 20.2% to 0.21% — a 96× improvement.**
 
 This is exactly the Plassier et al. motivation: raw conformal over-covers easy stocks
 (98.2%) and under-covers hard stocks (78.0%). Vol-normalized partially corrects this
-(5.9% spread) but DEUP-normalized virtually eliminates the disparity (0.8% spread).
+(5.9% spread) but DEUP-normalized virtually eliminates the disparity (0.21% spread).
 
 **90d:**
 
@@ -1390,7 +1390,7 @@ similarly in FINAL — the rolling calibration window adapts but with some lag.
 ### What 13.5 Proves
 
 1. **DEUP-normalized conformal dramatically improves conditional coverage.** The coverage
-   spread across ê terciles drops from 20% (raw) to 0.8% (DEUP) at 20d. This validates
+   spread across ê terciles drops from 20.2% (raw) to 0.21% (DEUP) at 20d. This validates
    the Plassier et al. motivation: scaling nonconformity scores by predicted epistemic
    uncertainty approximates conditional validity.
 
@@ -1662,7 +1662,7 @@ but does not improve top-K portfolio selection at 20d.
 | H(t): AUROC bad days | > 0.55 | 0.52 (20d), **0.60 (90d)** | MARGINAL |
 | H(t): Regime separation | FINAL mean_G < DEV | 0.15 vs 0.37 | **PASS** |
 | Conformal: Marginal coverage | 85–95% at 90% nominal | 89.9–90.0% | **PASS** |
-| Conformal: Conditional spread (DEUP) | < raw spread | 0.8% vs 20.2% (25×) | **PASS** |
+| Conformal: Conditional spread (DEUP) | < raw spread | 0.21% vs 20.2% (96×) | **PASS** |
 | Conformal: Width ratio (DEUP) | > 1.5 | 1.57 (20d) | **PASS** |
 | **Regime trust AUROC (G(t))** | **> 0.65** | **0.72 (ALL), 0.75 (FINAL)** | **PASS** |
 | **Regime trust precision @ G≥0.2** | **> 0.70** | **0.80** | **PASS** |

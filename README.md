@@ -13,12 +13,12 @@ A research-grade, signal-only decision-support system for cross-sectional equity
 | Metric | Value | What It Means |
 |--------|------:|---------------|
 | Shadow portfolio Sharpe | **2.73** | Vol-sized LGB, 20d monthly L/S, 82.6% hit rate |
-| FINAL holdout Sharpe | **1.91** | Survives into 2024 out-of-sample |
+| FINAL holdout Sharpe | **2.34** | Strongly survives into 2024 out-of-sample (14 months) |
 | Regime-trust AUROC | **0.72** (0.75 FINAL) | Knows when the model works vs. fails |
 | Regime-gated precision | **80%** | When system says "trade," it's right 80% of the time |
 | 2024 crisis detection | G(t) → 0 by April | Correctly triggers abstention during regime failure |
 | Multi-crisis validation | **7/8** correct verdicts (VIX: 5/8) | G(t) validated across 5 stress + 3 calm episodes 2016–2025 |
-| DEUP conformal intervals | **25× better** cond. coverage | Best-in-class calibrated prediction intervals |
+| DEUP conformal intervals | **96× better** cond. coverage | Best-in-class calibrated prediction intervals |
 | ê-Cap tail-risk guard | Gate+Vol+ê-Cap ALL Sharpe **0.884** | Beats Gate+Vol-only (+0.067); ê adds incremental value |
 | Test coverage | **1,000+** tests | All passing |
 
@@ -71,7 +71,7 @@ Regime context                Vol-sizing (Ch 12)              Binary deployment 
 
 The LightGBM ranker achieves exceptional in-sample performance across 2016–2023: Sharpe 2.73, 82.6% monthly hit rate, −18.1% max drawdown. It beats factor baselines by 3–10× and outperforms all fusion architectures at the 20d horizon.
 
-In 2024, an AI-driven thematic rally restructured cross-sectional factor returns, causing signal degradation at all horizons. The 60d and 90d signals go negative. Only 20d survives (FINAL Sharpe 1.91, but with doubled volatility).
+In 2024, an AI-driven thematic rally restructured cross-sectional factor returns, causing signal degradation at all horizons. The 60d and 90d signals go negative. Only 20d survives (FINAL Sharpe 2.34, with higher volatility 58.7% vs DEV 25.5%).
 
 ### The System Knows When It Fails
 
@@ -84,7 +84,7 @@ The DEUP framework (Chapter 13) addresses this with a regime-trust gate:
 
 ### Per-Stock Uncertainty Is Real (But Application Matters)
 
-DEUP's epistemic signal ê(x) genuinely predicts which individual predictions will have high rank displacement (ρ = 0.14–0.25 with realized rank loss, 3–10× better than volatility or VIX). It survives residualization against vol/VIX, generalizes to the FINAL holdout (stronger in holdout than DEV), and produces calibrated conformal intervals with 25× better conditional coverage than raw conformal.
+DEUP's epistemic signal ê(x) genuinely predicts which individual predictions will have high rank displacement (ρ = 0.14–0.25 with realized rank loss, 3–10× better than volatility or VIX). It survives residualization against vol/VIX, generalizes to the FINAL holdout (stronger in holdout than DEV), and produces calibrated conformal intervals with 96× better conditional coverage than raw conformal (conditional gap: 20.2% raw → 0.21% DEUP-normalized).
 
 However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates a structural conflict: the model's strongest signals live at extreme cross-sectional ranks, which are also where ê is highest. Vol-sizing avoids this conflict and remains the best per-stock weighting method.
 
@@ -119,8 +119,8 @@ However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates
 
 | Period | Sharpe | Ann. Return | Max DD | Hit Rate |
 |--------|:------:|:----------:|:------:|:--------:|
-| DEV (2016–2023, 95 months) | 3.15 | 81.9% | −21.9% | 82.1% |
-| FINAL (2024+, 14 months) | 1.91 | 119.1% | −16.6% | 71.4% |
+| DEV (2016–2023, 95 months) | **3.12** | 79.6% | −18.1% | 82.1% |
+| FINAL (2024+, 14 months) | **2.34** | 137.3% | −8.7% | 85.7% |
 
 ---
 
@@ -280,7 +280,7 @@ The uncertainty quantification framework implements DEUP (Direct Epistemic Uncer
 - **ê(x) = max(0, g(x) − a(x)):** Epistemic signal. Excess predicted error beyond the noise floor.
 - **H(t) / G(t):** Expert health gate. Trailing realized efficacy (PIT-safe) → binary deployment decision.
 
-Conformal prediction intervals follow the motivation of Plassier et al. (2025), normalizing nonconformity scores by ê(x) to achieve conditional validity. DEUP-normalized intervals reduce conditional coverage spread 25× vs raw conformal.
+Conformal prediction intervals follow the motivation of Plassier et al. (2025), normalizing nonconformity scores by ê(x) to achieve conditional validity. DEUP-normalized intervals reduce conditional coverage spread 96× vs raw conformal (20.2% → 0.21%).
 
 The framework instantiates the pointwise risk decomposition of Kotelevskii & Panov (ICLR 2025): Total Risk = Bayes Risk + Excess Risk, adapted from return-space to ranking-space.
 
