@@ -27,6 +27,48 @@ abstention.
 
 ---
 
+## 0. Data & Universe Characterisation
+
+> Measured from the live DuckDB feature store and `eval_rows.parquet` (109 walk-forward folds, 2016-02-01 → 2025-02-19).
+
+### 0.1 Realized Universe Size N_t
+
+Universe is a dynamic AI-exposed equity panel (≤ 100 US names, 10 thematic categories) filtered at each rebalance date with price ≥ $5 and ADV ≥ $1 M/day. Because 29 names were not yet listed at sample start, N_t grows over time.
+
+| Period | N dates | Mean N_t | Median N_t | p10 | p25 | p75 | p90 | Min | Max |
+|--------|--------:|:--------:|:----------:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **ALL** (2016–2025) | 2,277 | **83.9** | 83 | 71 | 75 | 96 | 98 | 67 | 99 |
+| **DEV** (≤ 2023-12-31) | 1,993 | **81.8** | 80 | 70 | 74 | 90 | 97 | 67 | 98 |
+| **FINAL** (≥ 2024-01-01) | 284 | **98.4** | 98 | 98 | 98 | 99 | 99 | 98 | 99 |
+
+*Note: N_t is measured from `eval_rows.parquet` at horizon = 20 d (unique tickers per evaluation date). The FINAL period is denser because all 29 late-IPO tickers have by then been listed and pass tradability filters. Annual mean N_t grew monotonically: 68.5 (2016) → 93.5 (2022) → 98.3 (2024).*
+
+### 0.2 Label Coverage & Drop Rate
+
+| Dimension | Count |
+|-----------|------:|
+| Max candidate triplets (100 tickers × 2,296 dates × 3 horizons) | 688,800 |
+| Labels successfully computed | **600,855** |
+| Total dropped | **87,945** (12.8 %) |
+
+**Drop reason taxonomy:**
+
+| Category | Rows dropped | Share | Explanation |
+|----------|:-----------:|:-----:|-------------|
+| **A — Pre-IPO / not-yet-listed** | ~86,400 | **98.2 %** | 29 tickers IPO'd after 2016-01-01 (ARM Sep 2023, MBLY Oct 2022, …). No label can be computed before a stock exists. Correct behaviour. |
+| **B — Stock exited sample** | ~1,550 | **1.8 %** | ABB (Swiss ADR) delisted from US exchanges; price data ends 2023-06-07, last label 2023-01-27. 1 ticker, ~516 post-exit date × 3 horizons. |
+| **C — Mid-sample FMP data gap** | ~270 | **0.3 %** | ABB feature rows Jan–Jun 2023 without matching labels during the delisting process (90 daily obs × 3 horizons). |
+
+**Within the evaluation window** (dates that appear in `eval_rows.parquet`, ≤ 2025-02-19):
+
+- **99.95 %** of candidate (ticker × date) pairs have a valid 20d label.
+- The only mid-sample gap is ABB (1 ticker, 90 daily observations = **0.05 %** of eval rows).
+- Identical drop structure for 60d and 90d horizons.
+
+**Important limitation — CRSP-style delisting returns are NOT modeled.** If `exit_price` is unavailable at T + H (because the stock was acquired, merged, or otherwise untradable), the label is silently dropped (`continue` in `src/features/labels.py`, lines 560–562). No partial-period holding return or CRSP terminal-price delisting return is applied. In this universe this affects only ABB; for a broader universe it would require explicit handling.
+
+---
+
 ## 1. Factor Baseline (Chapter 6)
 
 The factor baseline establishes the floor that any ML model must beat.
