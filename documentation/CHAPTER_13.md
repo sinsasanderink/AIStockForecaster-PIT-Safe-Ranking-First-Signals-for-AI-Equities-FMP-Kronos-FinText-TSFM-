@@ -1687,10 +1687,19 @@ from the regime gate, not per-stock position sizing.
 
 - ✅ **PASS: Regime trust gate works** (AUROC 0.72 / 0.75 FINAL, monotonic buckets,
   FINAL > DEV). G(t) answers "does the model work in the current regime?"
+- ✅ **PASS: G(t) validated across 9 years — 7/8 correct verdicts vs 5/8 for VIX gate.**
+  G(t) correctly stays active when the model works despite elevated VIX (2019, 2023 H1/H2),
+  and correctly abstains during true failures (2021, 2022 H1, 2024). Zero false alarms on
+  calm periods.
 - ✅ **PASS: ê-Cap adds incremental value on top of vol-sizing** (Gate+Vol+ê-Cap ALL
   Sharpe 0.884 vs Gate+Vol 0.817; FINAL 0.316 vs 0.191).
+- ✅ **PASS (robustness): RA2 ê quality is 35% better than LGB at 20d (ρ=0.194 vs 0.144).**
+  More robust base model → better DEUP signal. Gate equalises portfolio FINAL Sharpe
+  (ra2_gate_vol 0.958 vs lgb_gate_vol 1.017). Decision: RETAIN LGB as primary. The
+  G(t) gate is the dominant value driver regardless of base model.
 - ⚠️ **FAIL (honest): Inverse per-stock DEUP sizing does not beat vol sizing.** Root
-  cause confirmed by ρ(ê, |score|) = 0.616: DEUP's value is in regime gating,
+  cause confirmed by ρ(ê, |score|) = 0.616 for LGB; **confirmed model-agnostic**
+  (RA2 also shows ê-sizing underperforms RA2 raw). DEUP's value is in regime gating,
   calibrated intervals, and tail-risk capping — not multiplicative inverse-sizing.
 
 ## Remaining Steps

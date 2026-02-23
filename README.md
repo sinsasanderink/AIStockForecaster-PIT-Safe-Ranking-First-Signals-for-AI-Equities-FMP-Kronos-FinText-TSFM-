@@ -88,6 +88,8 @@ DEUP's epistemic signal ê(x) genuinely predicts which individual predictions wi
 
 However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates a structural conflict: the model's strongest signals live at extreme cross-sectional ranks, which are also where ê is highest. Vol-sizing avoids this conflict and remains the best per-stock weighting method.
 
+**Robustness check (13.9):** Rank Avg 2 produces 35% better ê(x) quality (ρ=0.194 vs LGB 0.144 at 20d), confirming DEUP's uncertainty signal responds to base model quality — it is not an LGB artefact. But LGB remains the deployment primary (stronger DEV signal, IC 0.091 vs 0.059). Once the G(t) gate is applied, both models achieve nearly identical FINAL Sharpe (0.958 vs 1.017), confirming the gate is the dominant value driver.
+
 ---
 
 ## Signal Quality
