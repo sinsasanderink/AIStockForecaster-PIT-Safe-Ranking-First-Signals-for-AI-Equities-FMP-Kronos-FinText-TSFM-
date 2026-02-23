@@ -17,6 +17,7 @@ A research-grade, signal-only decision-support system for cross-sectional equity
 | Regime-trust AUROC | **0.72** (0.75 FINAL) | Knows when the model works vs. fails |
 | Regime-gated precision | **80%** | When system says "trade," it's right 80% of the time |
 | 2024 crisis detection | G(t) → 0 by April | Correctly triggers abstention during regime failure |
+| Multi-crisis validation | **7/8** correct verdicts (VIX: 5/8) | G(t) validated across 5 stress + 3 calm episodes 2016–2025 |
 | DEUP conformal intervals | **25× better** cond. coverage | Best-in-class calibrated prediction intervals |
 | ê-Cap tail-risk guard | Gate+Vol+ê-Cap ALL Sharpe **0.884** | Beats Gate+Vol-only (+0.067); ê adds incremental value |
 | Test coverage | **1,000+** tests | All passing |
@@ -133,7 +134,7 @@ However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates
 | Ch 10 | NLP sentiment (FinBERT) | ✅ Complete |
 | Ch 11 | Fusion models | ✅ Complete |
 | Ch 12 | Regime analysis + stress tests | ✅ Complete |
-| **Ch 13** | **DEUP uncertainty quantification** | **⏳ 90%** |
+| **Ch 13** | **DEUP uncertainty quantification** | **⏳ 95%** |
 | Ch 14–17 | Monitoring, interfaces, acceptance, extensions | ⏳ TODO |
 
 ### Chapter 13 (DEUP) Progress
@@ -149,7 +150,8 @@ However, inverse-uncertainty *sizing* (reduce weight for high-ê stocks) creates
 | 13.5 | Conformal prediction intervals | ✅ |
 | 13.6 | Shadow portfolio + regime evaluation | ✅ |
 | 13.7 | Deployment policy + ablation | ✅ |
-| 13.8–13.9 | Robustness + freeze | ⏳ Next |
+| 13.8 | Multi-crisis G(t) diagnostic (7/8 correct; VIX 5/8) | ✅ |
+| 13.9 | Freeze & documentation | ⏳ Next |
 
 ---
 

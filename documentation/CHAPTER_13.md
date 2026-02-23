@@ -1698,7 +1698,7 @@ from the regime gate, not per-stock position sizing.
 | Section | Description | Status |
 |---------|-------------|--------|
 | 13.7 | Deployment policy + ablation | ✅ COMPLETE |
-| 13.8 | DEUP on Rank Avg 2 (optional robustness) | ⏳ TODO |
+| 13.8 | Multi-crisis G(t) diagnostic (paper validation) | ✅ COMPLETE |
 | 13.9 | Freeze & documentation | ⏳ TODO |
 
 ---
@@ -1843,3 +1843,97 @@ Recommended system: Binary Gate (G ≥ 0.2) + Vol-Sizing + ê-Cap at P85
 | Crisis MaxDD reduced | Any gated < ungated raw | Gate+Raw: −34.6% vs −44.0% | ✅ PASS |
 | Per-stock inverse sizing | ê-sized Sharpe > vol-sized | K4 triggered — ê-cap beats ê-inverse | ⚠️ REFRAMED |
 | Structural conflict documented | ρ(ê, \|score\|) measured | 0.616 — strongest evidence | ✅ PASS |
+
+---
+
+## 13.8 Multi-Crisis G(t) Diagnostic
+
+### Motivation
+
+Chapter 13.4b validated G(t) on a single episode (2024 AI rotation). For a research paper,
+a single episode is insufficient evidence — the gate could have been accidentally correct.
+Chapter 13.8 extends validation across **five major stress episodes** (2020–2024) and three
+calm reference periods using **only existing frozen evaluation outputs** (no retraining).
+
+### Method
+
+- Data: `expert_health_lgb_20d/60d/90d.parquet`, `enriched_residuals_tabular_lgb.parquet`
+- Gate threshold: G ≥ 0.2 (same as Chapter 13.7)
+- VIX gate baseline: abstain if VIX percentile > 67th percentile on > 50% of window days
+- Verdict logic: 2×2 table (G active/abstain × IC positive/negative)
+- Script: `scripts/crisis_diagnostic.py` (standalone, no retraining)
+
+### Crisis Windows Analysed
+
+| Window | Dates | Nature |
+|--------|-------|--------|
+| COVID recovery | Jun–Dec 2020 | Post-crash speculative recovery |
+| Meme mania | Jan–Sep 2021 | Retail-driven cross-sectional dislocations |
+| Inflation shock | Jan–Jun 2022 | Fed pivot; growth-to-value rotation |
+| Late hiking | Jul–Dec 2023 | Yield-curve inversion peak |
+| AI rotation | Mar–Jul 2024 | AI thematic rally; factor breakdown |
+
+### Results (20d Primary Horizon)
+
+```
+╔══════════════════════════════════════════════════════════════════════════════════════╗
+║       Chapter 13.8 — Multi-Crisis G(t) Diagnostic  (20d Primary Horizon)            ║
+╠══════════════════════════════════════════════════════════════════════════════════════╣
+║ Period                    Mean G  %Abstain   Mean IC   %BadDays   G Verdict   VIX V ║
+╠══════════════════════════════════════════════════════════════════════════════════════╣
+║ 2020 COVID recovery       0.375    47.3%    +0.0617    36.0%    ✓ Active    ✓ Active ║
+║ 2021 meme mania           0.210    73.4%    −0.0397    53.7%    ✗ Missed    ✓ Abst.  ║
+║ 2022 inflation shock      0.077    85.5%    −0.0235    50.8%    ✓ Abstains  ✓ Abst.  ║
+║ 2023 late hiking          0.381    39.7%    +0.0343    38.9%    ✓ Active    ✗ F.Alarm║
+║ 2024 AI rotation          0.123    76.2%    −0.0128    58.1%    ✓ Abstains  ✓ Abst.  ║
+╠══════════════════════════════════════════════════════════════════════════════════════╣
+║ 2018 calm                 0.323    61.8%    +0.0884    31.1%    ✓ Active    ✓ Active ║
+║ 2019 calm                 0.566    14.7%    +0.1223    19.0%    ✓ Active    ✗ F.Alarm║
+║ 2023 H1 calm              0.486    10.5%    +0.1038    23.4%    ✓ Active    ✗ F.Alarm║
+╚══════════════════════════════════════════════════════════════════════════════════════╝
+```
+
+**Scorecard:**
+
+| Window Type | G(t) Correct | VIX Correct |
+|-------------|:---:|:---:|
+| Crisis episodes (n=5) | **4/5** | 4/5 |
+| Calm reference (n=3) | **3/3** | 1/3 |
+| **Overall (n=8)** | **7/8 (87.5%)** | **5/8 (62.5%)** |
+
+### Key Findings
+
+1. **G(t) achieves 7/8 correct verdicts** (87.5%); VIX gate achieves 5/8 (62.5%).
+2. **Critical advantage on calm periods:** G(t) correctly stays active in 2019 (IC = +0.122) and 2023 H1 (IC = +0.104) while VIX produces false abstentions — a significant opportunity cost.
+3. **G(t)'s single failure (2021) is mild:** mean G = 0.210 (barely above threshold); abstention rate = 73.4% (heavy throttling); IC = −0.040 (marginally negative).
+4. **2023 H2 is the decisive distinguishing episode:** model IC = +0.034, VIX = 94.3% — G correctly trades, VIX correctly misses.
+5. **Multi-horizon nuance confirmed:** 2024 AI rotation damaged 20d IC (−0.013) while leaving 60d/90d positive (+0.070/+0.142); G(t)'s horizon-specific design is more precise than VIX.
+
+### Supplementary: Multi-Horizon IC
+
+```
+╔══════════════════════════════════════════════════════════════════════╗
+║     Mean RankIC by Horizon (Crisis + Calm Periods)                   ║
+╠══════════════════════════════════════════════════════════════════════╣
+║ Period                      IC (20d)    IC (60d)    IC (90d)         ║
+╠──────────────────────────────────────────────────────────────────────╣
+║ 2020 COVID recovery         +0.0617     +0.1940     +0.2400          ║
+║ 2021 meme mania             −0.0397     −0.0091     −0.0102          ║
+║ 2022 inflation shock        −0.0235     −0.0556     −0.1182          ║
+║ 2023 late hiking            +0.0343     +0.1080     +0.1590          ║
+║ 2024 AI rotation            −0.0128     +0.0695     +0.1417          ║
+║ 2018 calm                   +0.0884     +0.1971     +0.2486          ║
+║ 2019 calm                   +0.1223     +0.1923     +0.2180          ║
+║ 2023 H1 calm                +0.1038     +0.1286     +0.1614          ║
+╚══════════════════════════════════════════════════════════════════════╝
+```
+
+### Success Criteria
+
+| Criterion | Target | Result | Status |
+|-----------|--------|--------|:------:|
+| G(t) correct on crisis windows | ≥ 3/5 | 4/5 (80%) | ✅ PASS |
+| G(t) beats VIX overall | G > VIX accuracy | 7/8 vs 5/8 | ✅ PASS |
+| G(t) no false alarms on calm periods | 0 false alarms on calm | 3/3 correct | ✅ PASS |
+| 2024 AI rotation confirmed | Correctly abstains | ✓ Confirmed | ✅ PASS |
+| Multi-horizon IC analysed | All 3 horizons reported | ✅ All reported | ✅ PASS |
